@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プロ野球観戦記録簿</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" id="my-manifest">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #1a508b;
+            --accent-color: #e6b422;
+            --bg-color: #f4f7f9;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --win-color: #e74c3c;
+            --lose-color: #3498db;
+            --draw-color: #95a5a6;
+            --cancel-color: #7f8c8d;
+        }
+
+        * { box-sizing: border-box; font-family: 'Helvetica Neue', Arial, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); margin: 0; padding-bottom: 80px; }
+        
+        header { background: var(--primary-color); color: white; padding: 15px; text-align: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .container { max-width: 600px; margin: 0 auto; padding: 15px; }
+        
+        /* Navigation */
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 100; }
+        .nav-item { border: none; background: none; color: #888; font-size: 11px; cursor: pointer; text-align: center; flex: 1; }
+        .nav-item.active { color: var(--primary-color); }
+        .nav-item i { font-size: 20px; display: block; margin-bottom: 4px; }
+
+        /* Tabs */
+        .sub-tabs { display: flex; background: #eee; border-radius: 8px; padding: 3px; margin-bottom: 12px; gap: 2px; }
+        .sub-tab { flex: 1; border: none; background: none; padding: 8px 2px; font-size: 11px; border-radius: 6px; cursor: pointer; color: #666; white-space: nowrap; }
+        .sub-tab.active { background: white; color: var(--primary-color); font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+        /* UI Elements */
+        .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #eee; }
+        h2 { font-size: 1rem; margin-top: 0; border-left: 4px solid var(--primary-color); padding-left: 10px; margin-bottom: 15px; color: var(--primary-color); }
+        h3 { font-size: 0.85rem; margin: 15px 0 8px 0; color: #555; background: #f0f4f8; padding: 5px 10px; border-radius: 4px; }
+        
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; background: #fff; -webkit-appearance: none; }
+        select { background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; background-size: 16px; }
+        .row { display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-end; }
+        .row > * { flex: 1; }
+        .btn { background: var(--primary-color); color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .btn-outline { background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); padding: 8px; font-size: 14px; margin-top: 5px; }
+        .btn-danger { background: #e74c3c; color: white; }
+
+        /* Stats Display */
+        .stats-total-hero { text-align: center; padding: 25px 10px; background: linear-gradient(135deg, #1a508b, #2c3e50); color: white; border-radius: 15px; margin-bottom: 20px; }
+        .win-rate { font-size: 3.5rem; font-weight: bold; line-height: 1; }
+        .stats-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 15px; }
+        .stats-table th { text-align: left; padding: 8px 5px; border-bottom: 2px solid #eee; color: #777; font-size: 0.7rem; }
+        .stats-table td { padding: 8px 5px; border-bottom: 1px solid #f0f0f0; }
+        .rate-cell { font-weight: bold; text-align: right; color: var(--primary-color); }
+        
+        .hv-row { display: flex; gap: 30px; margin-bottom: 5px; }
+        .hv-label { font-size: 0.75rem; color: #666; }
+
+        /* List Items */
+        .record-card { border-left: 6px solid #ccc; position: relative; }
+        .record-card.win { border-left-color: var(--win-color); }
+        .record-card.lose { border-left-color: var(--lose-color); }
+        .record-card.draw { border-left-color: var(--draw-color); }
+        .record-card.canceled { border-left-color: var(--cancel-color); opacity: 0.8; }
+        .game-count-badge { font-size: 0.7rem; color: var(--primary-color); font-weight: bold; margin-bottom: 4px; display: block; }
+        .record-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .record-score { font-size: 1.1rem; font-weight: bold; margin: 5px 0; }
+        .record-meta { font-size: 0.75rem; color: #777; }
+        .record-details { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ddd; font-size: 0.85rem; line-height: 1.5; }
+        .record-details.open { display: block; }
+        .badge { padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; color: white; margin-right: 5px; }
+        .bg-win { background: var(--win-color); } .bg-lose { background: var(--lose-color); } .bg-draw { background: var(--draw-color); } .bg-neutral { background: #636e72; } .bg-cancel { background: var(--cancel-color); }
+        .btn-delete { background: #ff4757; color:white; border:none; padding:5px 10px; border-radius:4px; font-size:12px; margin-top:10px; cursor:pointer;}
+
+        .memo-box { background: #fdfdfd; border-left: 3px solid #e6b422; padding: 5px 10px; font-style: italic; color: #555; margin-top: 8px; font-size: 0.8rem; }
+        .highlight-box { background: #fff9db; padding: 10px; border-radius: 8px; border: 1px solid #ffec99; margin-bottom: 12px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1 style="margin:0; font-size: 1.1rem;">⚾️ プロ野球観戦記録簿</h1>
+</header>
+
+<div id="app" class="container">
+    <!-- 設定画面 -->
+    <section id="view-settings" class="view hidden">
+        <div class="card">
+            <h2>応援球団設定</h2>
+            <div id="team-selection" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;"></div>
+            <button class="btn" style="margin-top:20px" onclick="app.saveSettings()">設定を保存して開始</button>
+        </div>
+        
+        <div class="card" style="margin-top:20px;">
+            <h2 style="border-left-color: #666;">データ管理（バックアップ・移行）</h2>
+            <p style="font-size: 0.7rem; color: #666; margin-bottom: 10px;">
+                URLが固定されている場合、中身を上書きしてもデータは消えません。
+            </p>
+            <button class="btn btn-outline" onclick="app.exportData()">① 現在のデータを書き出す</button>
+            <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+                <label style="font-size: 0.75rem;">② バックアップから復元</label>
+                <textarea id="import-area" rows="3" placeholder="ここにテキストを貼り付け"></textarea>
+                <button class="btn btn-outline btn-danger" onclick="app.importData()" style="margin-top: 5px;">復元を実行する</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 入力画面 -->
+    <section id="view-input" class="view">
+        <div class="card">
+            <h2>新規記録入力</h2>
+            <form id="record-form">
+                <div class="row">
+                    <div class="form-group"><label>区分</label>
+                        <select id="f-category" onchange="app.uiUpdate()">
+                            <option value="一軍">一軍</option><option value="二軍">二軍</option><option value="中立観戦">中立観戦</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>試合状況</label>
+                        <select id="f-status">
+                            <option value="正常">試合終了</option>
+                            <option value="中止">中止（雨天等）</option>
+                            <option value="ノーゲーム">ノーゲーム</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="form-group" style="flex: 1.3;"><label>日付</label><input type="date" id="f-date" required></div>
+                    <div class="form-group"><label>時間</label><select id="f-time-select"></select></div>
+                </div>
+                <div class="form-group"><label>球場</label>
+                    <select id="f-stadium-select" onchange="app.uiUpdate()"></select>
+                    <input type="text" id="f-stadium-custom" class="hidden" placeholder="球場名を入力" style="margin-top:5px;">
+                </div>
+                <div class="row">
+                    <div class="form-group"><label>ホーム</label><select id="f-home-team" onchange="app.uiUpdate()"></select></div>
+                    <div class="form-group"><label>ビジター</label><select id="f-visitor-team" onchange="app.uiUpdate()"></select></div>
+                </div>
+
+                <div id="support-select-container" class="highlight-box hidden">
+                    <label style="color:#d9480f;"><i class="fas fa-exclamation-circle"></i> どちらを応援しましたか？</label>
+                    <select id="f-supported-team"></select>
+                </div>
+
+                <div class="row">
+                    <div class="form-group">
+                        <label>スコア(H)</label>
+                        <div style="display:flex; align-items:center; gap:5px;">
+                            <input type="number" id="f-home-score" value="0">
+                            <label class="x-label"><input type="checkbox" id="f-home-x" class="x-checkbox" style="-webkit-appearance:checkbox;">x</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>スコア(V)</label>
+                        <input type="number" id="f-visitor-score" value="0">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="form-group"><label id="label-h-hit">安打(H)</label><input type="number" id="f-home-hits" value="0"></div>
+                    <div class="form-group"><label id="label-v-hit">安打(V)</label><input type="number" id="f-visitor-hits" value="0"></div>
+                </div>
+                <div class="form-group">
+                    <label>本塁打</label>
+                    <div id="hr-list"></div>
+                    <button type="button" class="btn btn-outline" onclick="app.addHrField()">＋ 追加</button>
+                </div>
+                <div style="background:#f0f4f8; padding:10px; border-radius:8px;">
+                    <div class="row">
+                        <div class="form-group"><label style="font-size:0.7rem">勝投</label><input type="text" id="f-win-p"></div>
+                        <div class="form-group"><label style="font-size:0.7rem">勝目</label><input type="number" id="f-win-p-val" placeholder="数"></div>
+                        <div class="form-group"><label style="font-size:0.7rem">サヨナラ打</label><input type="text" id="f-walkoff-p" placeholder="名前"></div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group"><label style="font-size:0.7rem">負投</label><input type="text" id="f-lose-p"></div>
+                        <div class="form-group"><label style="font-size:0.7rem">敗目</label><input type="number" id="f-lose-p-val" placeholder="数"></div>
+                        <div style="flex:1;"></div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group"><label style="font-size:0.7rem">Ｓ投</label><input type="text" id="f-save-p"></div>
+                        <div class="form-group"><label style="font-size:0.7rem">Ｓ目</label><input type="number" id="f-save-p-val" placeholder="数"></div>
+                        <div style="flex:1;"></div>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top:10px;">
+                    <label>観戦メモ</label>
+                    <textarea id="f-memo" rows="2" placeholder="歴史的な記録など"></textarea>
+                </div>
+                <button type="button" class="btn" style="margin-top:5px;" onclick="app.addRecord()">記録を保存</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- 一覧画面 -->
+    <section id="view-list" class="view hidden">
+        <div class="filter-row" style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <select id="list-year-filter" onchange="app.renderRecords()"></select>
+            <select id="list-team-filter" onchange="app.renderRecords()"></select>
+        </div>
+        <div class="sub-tabs">
+            <button class="sub-tab active" id="tab-list-fav1" onclick="app.switchListTab('fav1')">一軍応援</button>
+            <button class="sub-tab" id="tab-list-fav2" onclick="app.switchListTab('fav2')">二軍応援</button>
+            <button class="sub-tab" id="tab-list-neutral" onclick="app.switchListTab('neutral')">中立観戦</button>
+        </div>
+        <div id="record-container"></div>
+    </section>
+
+    <!-- 集計画面 -->
+    <section id="view-stats" class="view hidden">
+        <select id="stats-year-filter" onchange="app.renderStats()" style="margin-bottom:15px;"></select>
+        <div id="stats-hero-container"></div>
+        <div id="stats-team-analysis-container"></div>
+        <div class="card">
+            <h2>球場別成績 (一軍・全体)</h2>
+            <table class="stats-table" id="stats-stadiums-total"></table>
+        </div>
+    </section>
+</div>
+
+<nav class="bottom-nav">
+    <button class="nav-item active" onclick="app.switchView('view-input', this)"><i class="fas fa-edit"></i>入力</button>
+    <button class="nav-item" onclick="app.switchView('view-list', this)"><i class="fas fa-list"></i>一覧</button>
+    <button class="nav-item" onclick="app.switchView('view-stats', this)"><i class="fas fa-chart-pie"></i>統計</button>
+    <button class="nav-item" onclick="app.switchView('view-settings', this)"><i class="fas fa-cog"></i>設定</button>
+</nav>
+
+<script>
+const STADIUM_MIGRATIONS = { "福岡PayPayドーム": "みずほPayPayドーム福岡", "西武ドーム": "ベルーナドーム" };
+const TEAMS = {
+    "一軍": ["ヤクルト", "DeNA", "阪神", "巨人", "広島", "中日", "オリックス", "ロッテ", "ソフトバンク", "楽天", "西武", "日本ハム"],
+    "二軍": ["オイシックス", "くふうハヤテ"]
+};
+const STADIUMS = {
+    "一軍本拠地": ["明治神宮野球場", "横浜スタジアム", "阪神甲子園球場", "東京ドーム", "MAZDA Zoom-Zoom スタジアム広島", "バンテリンドーム ナゴヤ", "京セラドーム大阪", "ZOZOマリンスタジアム", "みずほPayPayドーム福岡", "楽天モバイルパーク宮城", "ベルーナドーム", "エスコンフィールドHOKKAIDO"],
+    "二軍本拠地": ["ヤクルト戸田球場", "横須賀スタジアム", "阪神鳴尾浜球場", "読売ジャイアンツ球場", "広島東洋カープ由宇練習場", "ナゴヤ球場", "杉本商事バファローズスタジアム舞洲", "ロッテ浦和球場", "タマホーム スタジアム筑後", "ウェルファムフーズ森林どりスタジアム泉", "CAR3219フィールド", "ファイターズ鎌ケ谷スタジアム", "HARD OFF ECOスタジアム新潟", "ちゅ〜るスタジアム清水"],
+    "その他": ["その他（自由記入）"]
+};
+
+const app = {
+    data: { settings: { favTeams: [] }, records: [] },
+    currentListTab: 'fav1',
+    storageKey: 'pb_app_v_final_hits',
+
+    init() {
+        const saved = localStorage.getItem(this.storageKey);
+        if (saved) {
+            this.data = JSON.parse(saved);
+            this.runMigrations();
+        } else {
+            this.switchView('view-settings', document.querySelector('.nav-item:last-child'));
+        }
+        this.setupTimeSelect();
+        this.renderTeamSettings();
+        this.setupForm();
+        this.uiUpdate();
+        document.getElementById('f-date').valueAsDate = new Date();
+    },
+
+    runMigrations() {
+        this.data.records.forEach(rec => {
+            if (STADIUM_MIGRATIONS[rec.stadium]) rec.stadium = STADIUM_MIGRATIONS[rec.stadium];
+            if (!rec.status) rec.status = "正常";
+            if (!rec.winP || typeof rec.winP === 'string') rec.winP = { name: rec.winP || "", val: "" };
+            if (!rec.loseP || typeof rec.loseP === 'string') rec.loseP = { name: rec.loseP || "", val: "" };
+            if (!rec.saveP || typeof rec.saveP === 'string') rec.saveP = { name: rec.saveP || "", val: "" };
+        });
+        this.save();
+    },
+
+    save() { localStorage.setItem(this.storageKey, JSON.stringify(this.data)); },
+
+    exportData() {
+        const blob = JSON.stringify(this.data);
+        navigator.clipboard.writeText(blob).then(() => alert("バックアップ完了"));
+    },
+
+    importData() {
+        const input = document.getElementById('import-area').value.trim();
+        if (!input) return;
+        if (!confirm("データを上書きしますか？")) return;
+        try {
+            const parsed = JSON.parse(input);
+            if (parsed.settings && parsed.records) {
+                this.data = parsed; this.save(); alert("復元完了"); location.reload();
+            }
+        } catch (e) { alert("不正な形式です"); }
+    },
+
+    setupTimeSelect() {
+        const sel = document.getElementById('f-time-select');
+        let opts = "";
+        for(let h=0; h<24; h++) {
+            for(let m=0; m<60; m+=15) {
+                const t = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+                opts += `<option value="${t}" ${t==="18:00"?'selected':''}>${t}</option>`;
+            }
+        }
+        sel.innerHTML = opts;
+    },
+
+    switchView(viewId, btn) {
+        document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+        document.getElementById(viewId).classList.remove('hidden');
+        document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        if (viewId === 'view-list') { this.updateTeamFilterDropdown(); this.renderRecords(); }
+        if (viewId === 'view-stats') this.renderStats();
+    },
+
+    switchListTab(tab) {
+        this.currentListTab = tab;
+        document.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-list-' + tab).classList.add('active');
+        document.getElementById('list-team-filter').style.visibility = (tab === 'neutral') ? 'hidden' : 'visible';
+        this.renderRecords();
+    },
+
+    updateTeamFilterDropdown() {
+        const sel = document.getElementById('list-team-filter');
+        const cur = sel.value;
+        let html = '<option value="all">全応援球団</option>';
+        this.data.settings.favTeams.forEach(t => html += `<option value="${t}" ${t===cur?'selected':''}>${t}</option>`);
+        sel.innerHTML = html;
+    },
+
+    renderTeamSettings() {
+        const container = document.getElementById('team-selection');
+        container.innerHTML = '';
+        [...TEAMS["一軍"], ...TEAMS["二軍"]].forEach(team => {
+            const isSelected = this.data.settings.favTeams.includes(team);
+            const div = document.createElement('div');
+            div.style = `border:1px solid #ddd; padding:8px; border-radius:6px; text-align:center; font-size:12px; cursor:pointer; background:${isSelected?'var(--primary-color)':'white'}; color:${isSelected?'white':'#333'}`;
+            div.textContent = team;
+            div.onclick = () => {
+                const idx = this.data.settings.favTeams.indexOf(team);
+                if (idx > -1) this.data.settings.favTeams.splice(idx, 1);
+                else this.data.settings.favTeams.push(team);
+                this.renderTeamSettings();
+                this.setupForm();
+            };
+            container.appendChild(div);
+        });
+    },
+
+    saveSettings() { this.save(); this.switchView('view-input', document.querySelector('.nav-item:first-child')); },
+
+    setupForm() {
+        const sSel = document.getElementById('f-stadium-select');
+        let sHtml = "";
+        for (const [g, list] of Object.entries(STADIUMS)) {
+            sHtml += `<optgroup label="${g}">`;
+            list.forEach(n => sHtml += `<option value="${n}">${n}</option>`);
+            sHtml += `</optgroup>`;
+        }
+        sSel.innerHTML = sHtml;
+        const fill = (id, list) => document.getElementById(id).innerHTML = list.map(i => `<option value="${i}">${i}</option>`).join('');
+        fill('f-home-team', [...TEAMS["一軍"], ...TEAMS["二軍"]]);
+        fill('f-visitor-team', [...TEAMS["一軍"], ...TEAMS["二軍"]]);
+    },
+
+    uiUpdate() {
+        const cat = document.getElementById('f-category').value;
+        const hTeam = document.getElementById('f-home-team').value;
+        const vTeam = document.getElementById('f-visitor-team').value;
+        const stadium = document.getElementById('f-stadium-select').value;
+        document.getElementById('f-stadium-custom').classList.toggle('hidden', stadium !== 'その他（自由記入）');
+        const isHFav = this.data.settings.favTeams.includes(hTeam);
+        const isVFav = this.data.settings.favTeams.includes(vTeam);
+        const supportBox = document.getElementById('support-select-container');
+        const supportSel = document.getElementById('f-supported-team');
+        if (cat !== '中立観戦' && isHFav && isVFav) {
+            supportBox.classList.remove('hidden');
+            supportSel.innerHTML = `<option value="${hTeam}">${hTeam}</option><option value="${vTeam}">${vTeam}</option><option value="両方">両方応援</option>`;
+        } else {
+            supportBox.classList.add('hidden');
+            supportSel.innerHTML = "";
+        }
+    },
+
+    addHrField() {
+        const container = document.getElementById('hr-list');
+        const div = document.createElement('div');
+        div.style = "background:#f9f9f9; padding:8px; margin-bottom:5px; border-radius:6px; position:relative; border:1px solid #eee;";
+        div.innerHTML = `<button type="button" style="position:absolute; right:5px; top:5px; border:none; background:none; color:#999;" onclick="this.parentElement.remove()">×</button>
+            <div class="row"><input type="text" class="hr-player" placeholder="選手名" style="flex:2"></div>
+            <div class="row"><input type="number" class="hr-num" placeholder="号"><input type="number" class="hr-inn" placeholder="回"><select class="hr-type"><option>ソロ</option><option>2ラン</option><option>3ラン</option><option>満塁</option></select></div>`;
+        container.appendChild(div);
+    },
+
+    addRecord() {
+        const d = document.getElementById('f-date').value;
+        if(!d) return alert('日付を入力');
+        const hrs = [];
+        document.querySelectorAll('#hr-list > div').forEach(el => {
+            const player = el.querySelector('.hr-player').value;
+            if(player) hrs.push({ player, num: el.querySelector('.hr-num').value, inn: el.querySelector('.hr-inn').value, type: el.querySelector('.hr-type').value });
+        });
+        const rec = {
+            id: Date.now(), category: document.getElementById('f-category').value, status: document.getElementById('f-status').value, 
+            date: d, time: document.getElementById('f-time-select').value, year: new Date(d).getFullYear(),
+            stadium: document.getElementById('f-stadium-select').value === 'その他（自由記入）' ? document.getElementById('f-stadium-custom').value : document.getElementById('f-stadium-select').value,
+            homeTeam: document.getElementById('f-home-team').value, visitorTeam: document.getElementById('f-visitor-team').value,
+            supportedTeam: document.getElementById('f-supported-team').value || null,
+            homeScore: parseInt(document.getElementById('f-home-score').value) || 0,
+            homeX: document.getElementById('f-home-x').checked,
+            visitorScore: parseInt(document.getElementById('f-visitor-score').value) || 0,
+            homeHits: parseInt(document.getElementById('f-home-hits').value) || 0, 
+            visitorHits: parseInt(document.getElementById('f-visitor-hits').value) || 0,
+            hrs: hrs, 
+            winP: { name: document.getElementById('f-win-p').value, val: document.getElementById('f-win-p-val').value },
+            loseP: { name: document.getElementById('f-lose-p').value, val: document.getElementById('f-lose-p-val').value },
+            saveP: { name: document.getElementById('f-save-p').value, val: document.getElementById('f-save-p-val').value },
+            walkoffP: document.getElementById('f-walkoff-p').value,
+            memo: document.getElementById('f-memo').value
+        };
+        this.data.records.push(rec); this.save(); alert('保存しました');
+        document.getElementById('record-form').reset(); document.getElementById('hr-list').innerHTML = ''; this.init();
+    },
+
+    getActuallySupportedTeam(rec) {
+        if (rec.supportedTeam && rec.supportedTeam !== "両方") return rec.supportedTeam;
+        const isH = this.data.settings.favTeams.includes(rec.homeTeam);
+        const isV = this.data.settings.favTeams.includes(rec.visitorTeam);
+        if (isH && !isV) return rec.homeTeam;
+        if (!isH && isV) return rec.visitorTeam;
+        return null;
+    },
+
+    getMatchResult(rec) {
+        if (rec.status !== '正常') return '中止';
+        if (rec.category === '中立観戦') return '中立';
+        if (rec.homeScore === rec.visitorScore) return '分';
+        const support = this.getActuallySupportedTeam(rec);
+        if (!support) return '中立';
+        return (support === rec.homeTeam) ? (rec.homeScore > rec.visitorScore ? '勝' : '敗') : (rec.visitorScore > rec.homeScore ? '勝' : '敗');
+    },
+
+    renderRecords() {
+        const container = document.getElementById('record-container');
+        const fy = document.getElementById('list-year-filter');
+        const ft = document.getElementById('list-team-filter');
+        const years = [...new Set(this.data.records.map(r => r.year))].sort((a,b) => b-a);
+        const curY = fy.value || years[0] || new Date().getFullYear();
+        fy.innerHTML = ['通算', ...years].map(y => `<option value="${y}">${y}</option>`).join('');
+        fy.value = curY;
+
+        const sortedAll = [...this.data.records].sort((a,b) => (a.date + a.time).localeCompare(b.date + b.time));
+        let yTotal = {}; let yTeam = {};
+        sortedAll.forEach(rec => {
+            if (rec.category === '一軍' && rec.status === '正常') {
+                const y = rec.year; if (!yTotal[y]) yTotal[y] = 0; yTotal[y]++; rec._totalSeq = yTotal[y];
+                const sTeam = this.getActuallySupportedTeam(rec);
+                if (sTeam) {
+                    if (!yTeam[y]) yTeam[y] = {}; if (!yTeam[y][sTeam]) yTeam[y][sTeam] = 0;
+                    yTeam[y][sTeam]++; rec._teamSeq = yTeam[y][sTeam]; rec._teamName = sTeam;
+                }
+            } else { rec._totalSeq = null; rec._teamSeq = null; }
+        });
+
+        let filtered = sortedAll.filter(r => curY === '通算' || r.year == curY);
+        if (this.currentListTab === 'fav1') {
+            filtered = filtered.filter(r => r.category === '一軍');
+            if (ft.value !== 'all') filtered = filtered.filter(r => this.getActuallySupportedTeam(r) === ft.value);
+        } else if (this.currentListTab === 'fav2') {
+            filtered = filtered.filter(r => r.category === '二軍');
+            if (ft.value !== 'all') filtered = filtered.filter(r => this.getActuallySupportedTeam(r) === ft.value);
+        } else filtered = filtered.filter(r => r.category === '中立観戦');
+
+        filtered.reverse();
+        container.innerHTML = filtered.length ? '' : '<p style="text-align:center;padding:20px;color:#999">なし</p>';
+        filtered.forEach(rec => {
+            const res = this.getMatchResult(rec);
+            const bc = res === '勝' ? 'bg-win' : res === '敗' ? 'bg-lose' : res === '分' ? 'bg-draw' : res === '中立' ? 'bg-neutral' : 'bg-cancel';
+            const card = document.createElement('div');
+            card.className = `card record-card ${res==='勝'?'win':res==='敗'?'lose':res==='分'?'draw':res==='中立'?'':'canceled'}`;
+            let countHtml = rec._totalSeq ? `<span class="game-count-badge">${rec.year}年 ${rec._totalSeq}戦目${rec._teamSeq ? ` / ${rec._teamName} ${rec._teamSeq}戦目` : ''}</span>` : "";
+            
+            let pInfo = [];
+            if (rec.winP && rec.winP.name) pInfo.push(`[勝] ${rec.winP.name}${rec.winP.val ? ` (${rec.winP.val}勝目)` : ""}`);
+            if (rec.loseP && rec.loseP.name) pInfo.push(`[敗] ${rec.loseP.name}${rec.loseP.val ? ` (${rec.loseP.val}敗目)` : ""}`);
+            if (rec.saveP && rec.saveP.name) pInfo.push(`[Ｓ] ${rec.saveP.name}${rec.saveP.val ? ` (${rec.saveP.val}Ｓ目)` : ""}`);
+            let pInfoHtml = pInfo.length > 0 ? `<div><strong>投手:</strong> ${pInfo.join(' ')}</div>` : "";
+
+            card.innerHTML = `${countHtml}
+                <div class="record-header" onclick="this.nextElementSibling.classList.toggle('open')">
+                    <div style="flex:1"><div class="record-meta">${rec.date.replace(/-/g,'/')} ${rec.time} / ${rec.stadium}</div>
+                    <div class="record-score"><span class="badge ${bc}">${res}</span> ${rec.homeTeam} ${rec.homeScore}${rec.homeX?'x':''} - ${rec.visitorScore} ${rec.visitorTeam}</div></div>
+                    <i class="fas fa-chevron-down" style="color:#ccc"></i>
+                </div>
+                <div class="record-details">
+                    <div><strong>安打:</strong> H:${rec.homeHits} V:${rec.visitorHits}</div>
+                    ${rec.walkoffP ? `<div><i class="fas fa-bolt" style="color:#e6b422;"></i> <strong>サヨナラ打:</strong> ${rec.walkoffP}</div>` : ''}
+                    ${rec.hrs && rec.hrs.length ? `<div><strong>本塁打:</strong> ${rec.hrs.map(h=>`${h.player}(${h.inn}回${h.num}号${h.type})`).join(', ')}</div>` : ''}
+                    ${pInfoHtml}
+                    ${rec.memo ? `<div class="memo-box"><strong>Memo:</strong> ${rec.memo}</div>` : ''}
+                    <button class="btn-delete" onclick="app.deleteRecord(${rec.id})">削除</button>
+                </div>`;
+            container.appendChild(card);
+        });
+    },
+
+    deleteRecord(id) { if(confirm('削除？')){ this.data.records=this.data.records.filter(r=>r.id!==id); this.save(); this.renderRecords(); } },
+
+    renderStats() {
+        const fy = document.getElementById('stats-year-filter');
+        const years = [...new Set(this.data.records.map(r => r.year))].sort((a,b) => b-a);
+        const curY = fy.value || years[0] || new Date().getFullYear();
+        fy.innerHTML = ['通算', ...years].map(y => `<option value="${y}">${y}</option>`).join('');
+        fy.value = curY;
+
+        const filtered = this.data.records.filter(r => (curY === '通算' || r.year == curY) && r.category === '一軍');
+        const calcRate = (w, l) => (w + l > 0) ? (w / (w + l)).toFixed(3) : '.000';
+        
+        let overall = {w:0, l:0, d:0}, stadTotal = {}, teamAnalysis = {};
+        this.data.settings.favTeams.forEach(t => {
+            teamAnalysis[t] = { ov: {w:0,l:0,d:0}, home: {w:0,l:0,d:0}, v: {w:0,l:0,d:0}, opps: {}, stad: {}, pitchers: {}, batters: {}, walkoffs: {}, rs:0, ra:0 };
+        });
+
+        filtered.forEach(r => {
+            const res = this.getMatchResult(r);
+            if (res === '中止') return;
+            const support = this.getActuallySupportedTeam(r);
+            if (res !== '中立' && support) {
+                overall[res==='勝'?'w':res==='敗'?'l':'d']++;
+                const ta = teamAnalysis[support];
+                ta.ov[res==='勝'?'w':res==='敗'?'l':'d']++;
+                const isH = (support === r.homeTeam);
+                if (isH) { ta.home[res==='勝'?'w':res==='敗'?'l':'d']++; ta.rs += r.homeScore; ta.ra += r.visitorScore; }
+                else { ta.v[res==='勝'?'w':res==='敗'?'l':'d']++; ta.rs += r.visitorScore; ta.ra += r.homeScore; }
+                const opp = isH ? r.visitorTeam : r.homeTeam;
+                if (!ta.opps[opp]) ta.opps[opp] = {w:0, l:0, d:0}; ta.opps[opp][res==='勝'?'w':res==='敗'?'l':'d']++;
+                if (!ta.stad[r.stadium]) ta.stad[r.stadium] = {w:0, l:0, d:0}; ta.stad[r.stadium][res==='勝'?'w':res==='敗'?'l':'d']++;
+                const cp = (n, type) => { if(!n) return; if(!ta.pitchers[n]) ta.pitchers[n]={w:0,l:0,s:0}; ta.pitchers[n][type]++; };
+                if (r.winP.name) cp(r.winP.name, 'w'); if (r.loseP.name) cp(r.loseP.name, 'l'); if (r.saveP.name) cp(r.saveP.name, 's');
+                r.hrs.forEach(h => { if(h.player) ta.batters[h.player] = (ta.batters[h.player] || 0) + 1; });
+                if(r.walkoffP) ta.walkoffs[r.walkoffP] = (ta.walkoffs[r.walkoffP] || 0) + 1;
+            }
+            if (!stadTotal[r.stadium]) stadTotal[r.stadium] = {w:0, l:0, d:0};
+            if (res === '勝') stadTotal[r.stadium].w++; else if (res === '敗') stadTotal[r.stadium].l++; else if (res === '分') stadTotal[r.stadium].d++;
+        });
+
+        document.getElementById('stats-hero-container').innerHTML = `<div class="stats-total-hero"><div style="font-size:0.9rem;opacity:0.8;margin-bottom:5px;">${curY==='通算'?'通算':curY+'年'} 一軍勝率</div><div class="win-rate">${calcRate(overall.w, overall.l)}</div><div style="margin-top:10px;">${overall.w}勝 ${overall.l}敗 ${overall.d}分</div></div>`;
+        
+        let analysisHtml = "";
+        Object.entries(teamAnalysis).forEach(([team, data]) => {
+            if (data.ov.w + data.ov.l + data.ov.d === 0) return;
+            const diff = data.rs - data.ra;
+            const diffSign = diff > 0 ? "+" : (diff === 0 ? "±" : "");
+            
+            analysisHtml += `<div class="card"><h2>${team} 分析</h2>
+                <table class="stats-table">
+                    <tr><td><strong>通算勝率</strong></td><td>${data.ov.w}勝${data.ov.l}敗</td><td class="rate-cell">${calcRate(data.ov.w, data.ov.l)}</td></tr>
+                    <tr><td colspan="3"><div class="hv-row">
+                        <span class="hv-label">H: ${data.home.w}勝${data.home.l}敗 (${calcRate(data.home.w, data.home.l)})</span>
+                        <span class="hv-label">V: ${data.v.w}勝${data.v.l}敗 (${calcRate(data.v.w, data.v.l)})</span>
+                    </div></td></tr>
+                    <tr><td colspan="3"><span class="hv-label">得失点差: ${diffSign}${diff} (得${data.rs} / 失${data.ra})</span></td></tr>
+                </table>
+                <h3>対戦相手別</h3><table class="stats-table">` + Object.entries(data.opps).sort((a,b)=>calcRate(b[1].w,b[1].l)-calcRate(a[1].w,a[1].l)).map(([opp, s])=>`<tr><td>${opp}</td><td>${s.w}勝${s.l}敗</td><td class="rate-cell">${calcRate(s.w, s.l)}</td></tr>`).join('') + `</table>
+                <h3>球場別</h3><table class="stats-table">` + Object.entries(data.stad).sort((a,b)=>calcRate(b[1].w,b[1].l)-calcRate(a[1].w,a[1].l)).map(([st, s])=>`<tr><td>${st}</td><td>${s.w}勝${s.l}敗</td><td class="rate-cell">${calcRate(s.w, s.l)}</td></tr>`).join('') + `</table>
+                <h3>投手 / 本塁打 / サヨナラ</h3><table class="stats-table"><thead><tr><th>名前</th><th>勝</th><th>敗</th><th>S</th></tr></thead><tbody>` + Object.entries(data.pitchers).sort((a,b)=>b[1].w-a[1].w).map(([n,s])=>`<tr><td>${n}</td><td>${s.w}</td><td>${s.l}</td><td>${s.s}</td></tr>`).join('') + `</tbody></table>
+                <table class="stats-table">` + Object.entries(data.batters).sort((a,b)=>b[1]-a[1]).map(([n,c])=>`<tr><td>${n}</td><td style="text-align:right;">${c}本</td></tr>`).join('') + Object.entries(data.walkoffs).map(([n,c])=>`<tr><td>${n} (サヨナラ打)</td><td style="text-align:right;">${c}回</td></tr>`).join('') + `</table></div>`;
+        });
+        document.getElementById('stats-team-analysis-container').innerHTML = analysisHtml || '<p style="text-align:center;padding:20px;color:#999">データなし</p>';
+        document.getElementById('stats-stadiums-total').innerHTML = Object.entries(stadTotal).sort((a,b)=>(b[1].w+b[1].l)-(a[1].w+a[1].l)).slice(0, 10).map(([n,s])=>`<tr><td>${n}</td><td>${s.w}勝${s.l}敗</td><td class="rate-cell">${calcRate(s.w, s.l)}</td></tr>`).join('');
+    }
+};
+
+window.onload = () => app.init();
+const manifest = { "name": "プロ野球観戦記録簿", "short_name": "野球記録", "start_url": ".", "display": "standalone", "background_color": "#f4f7f9", "theme_color": "#1a508b", "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/3177/3177218.png", "sizes": "512x512", "type": "image/png" }] };
+document.getElementById('my-manifest').setAttribute('href', 'data:application/json;base64,' + btoa(JSON.stringify(manifest)));
+</script>
+</body>
+</html>
