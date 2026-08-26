@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プロ野球観戦記録簿</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" id="my-manifest">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <!-- Google Identity Services 及び Drive API 用 SDK -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" async defer></script>
+    <style>
+        :root {
+            --primary-color: #1a508b;
+            --accent-color: #e6b422;
+            --bg-color: #f4f7f9;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --win-color: #e74c3c;
+            --lose-color: #3498db;
+            --draw-color: #95a5a6;
+            --cancel-color: #7f8c8d;
+            --plan-color: #2ecc71;
+        }
+
+        * { box-sizing: border-box; font-family: 'Helvetica Neue', Arial, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); margin: 0; padding-bottom: 80px; }
+        
+        header { background: var(--primary-color); color: white; padding: 15px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center; }
+        header h1 { margin: 0; font-size: 1.1rem; }
+        .user-profile { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
+        .user-profile img { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #fff; }
+        .btn-logout { background: rgba(255,255,255,0.2); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; }
+
+        .container { max-width: 600px; margin: 0 auto; padding: 15px; transition: max-width 0.3s ease; }
+        
+        /* Navigation */
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 100; }
+        .nav-item { border: none; background: none; color: #888; font-size: 10px; cursor: pointer; text-align: center; flex: 1; padding: 6px 0; }
+        .nav-item.active { color: var(--primary-color); }
+        .nav-item i { font-size: 18px; display: block; margin-bottom: 3px; }
+
+        /* Tabs & Filters */
+        .filter-row { display: flex; gap: 5px; margin-bottom: 8px; flex-wrap: wrap; }
+        .filter-row select { flex: 1; min-width: 80px; font-size: 12px; padding: 8px 5px; border: 1px solid #ddd; border-radius: 6px; background: white; }
+        .sub-tabs { display: flex; background: #eee; border-radius: 8px; padding: 3px; margin-bottom: 12px; gap: 2px; }
+        .sub-tab { flex: 1; border: none; background: none; padding: 10px 4px; font-size: 12px; border-radius: 6px; cursor: pointer; color: #666; min-height: 40px; }
+        .sub-tab.active { background: white; color: var(--primary-color); font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+        /* UI Elements */
+        .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #eee; }
+        h2 { font-size: 1rem; margin-top: 0; border-left: 4px solid var(--primary-color); padding-left: 10px; margin-bottom: 15px; color: var(--primary-color); text-align: left; }
+        h3 { font-size: 0.85rem; margin: 15px 0 8px 0; color: #555; background: #f0f4f8; padding: 5px 10px; border-radius: 4px; text-align: left; }
+        
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; background: #fff; -webkit-appearance: none; }
+        select { background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; background-size: 16px; }
+        .row { display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-end; }
+        .row > * { flex: 1; }
+        .btn { background: var(--primary-color); color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 8px; }
+        .btn-outline { background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); padding: 8px; font-size: 14px; margin-top: 5px; }
+
+        .x-checkbox { width: auto !important; margin-right: 3px; -webkit-appearance: checkbox; }
+        .x-label { font-size: 0.75rem; color: #777; display: flex; align-items: center; cursor: pointer; padding-bottom: 10px;}
+
+        /* Mode Selector Radio Toggle */
+        .mode-selector { display: flex; gap: 5px; margin-bottom: 15px; background: #e9ecef; padding: 4px; border-radius: 8px; }
+        .mode-btn { flex: 1; text-align: center; padding: 10px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; color: #555; transition: 0.2s; }
+        .mode-btn.active { background: var(--primary-color); color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+        /* Stats Display */
+        #view-stats { text-align: center; }
+        #view-stats h2, #view-stats h3 { text-align: center; }
+        .stats-total-hero { text-align: center; padding: 25px 10px; background: linear-gradient(135deg, #1a508b, #2c3e50); color: white; border-radius: 15px; margin-bottom: 20px; }
+        .win-rate { font-weight: bold; line-height: 1; }
+        .stats-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 10px; table-layout: fixed; }
+        .stats-table th { text-align: center; padding: 8px 5px; border-bottom: 2px solid #eee; color: #777; font-size: 0.7rem; }
+        .stats-table td { padding: 8px 5px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; word-wrap: break-word; text-align: center; }
+        .no-wrap { white-space: nowrap; }
+        .game-num { font-weight: bold; color: inherit; }
+        
+        .col-name { width: 35%; text-align: center; }
+        .col-num { width: 18%; text-align: center; font-weight: bold; }
+        .col-detail { text-align: center; }
+        .rate-cell { font-weight: bold; text-align: center; color: var(--primary-color); width: 45px; }
+        .count-cell { text-align: center; }
+
+        .hv-container { display: flex; flex-direction: column; gap: 4px; padding: 4px 0; align-items: flex-start; text-align: left; }
+        .hv-label { font-size: 0.75rem; color: #555; text-align: left; }
+        .text-left { text-align: left !important; }
+
+        /* List Items */
+        .record-card { border-left: 6px solid #ccc; position: relative; text-align: left; margin-bottom: 10px; }
+        .record-card.win { border-left-color: var(--win-color); }
+        .record-card.lose { border-left-color: var(--lose-color); }
+        .record-card.draw { border-left-color: var(--draw-color); }
+        .record-card.canceled { border-left-color: var(--cancel-color); opacity: 0.8; }
+        .record-card.plan { border-left-color: var(--plan-color); }
+        .game-count-badge { font-size: 0.7rem; color: var(--primary-color); font-weight: bold; margin-bottom: 4px; display: block; }
+        .record-main-title { font-size: 1.05rem; font-weight: 800; color: #111; margin-bottom: 4px; }
+        .record-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 4px 0; }
+        .record-score { font-size: 1.1rem; font-weight: bold; margin: 3px 0; }
+        .record-meta { font-size: 0.75rem; color: #777; margin-bottom: 2px; }
+        .record-details { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ddd; font-size: 0.85rem; line-height: 1.5; }
+        .record-details.open { display: block; }
+        .badge { padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; color: white; margin-right: 5px; }
+        .bg-win { background: var(--win-color); } .bg-lose { background: var(--lose-color); } .bg-draw { background: var(--draw-color); } .bg-neutral { background: #636e72; } .bg-cancel { background: var(--cancel-color); } .bg-plan { background: var(--plan-color); }
+        
+        .action-btns { text-align: right; margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px; }
+        .btn-mini { border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; color: white; }
+        .btn-edit { background: #95a5a6; }
+        .btn-delete { background: #ff4757; }
+
+        .memo-box { background: #fdfdfd; border-left: 3px solid #e6b422; padding: 5px 10px; font-style: italic; color: #555; margin-top: 8px; font-size: 0.8rem; word-break: break-all; }
+        .highlight-box { background: #fffdf2; padding: 10px; border-radius: 8px; border: 2px solid #ffec99; margin-bottom: 12px; }
+        .hidden { display: none !important; }
+
+        /* Calendar Styling */
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .calendar-header button { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--primary-color); padding: 8px 12px; }
+        .calendar-title { font-weight: bold; font-size: 1.1rem; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; background: #e0e0e0; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+        .cal-day-header { background: #f0f4f8; padding: 5px 0; text-align: center; font-size: 0.7rem; font-weight: bold; color: #555; }
+        .cal-day-header.sun { color: var(--win-color); }
+        .cal-day-header.sat { color: var(--lose-color); }
+        .cal-cell { background: white; min-height: 65px; padding: 2px; display: flex; flex-direction: column; justify-content: flex-start; }
+        .cal-cell.other-month { background: #f9f9f9; opacity: 0.5; }
+        .cal-date { font-size: 0.75rem; font-weight: bold; color: #444; margin-bottom: 2px; padding-left: 2px; }
+        .cal-cell.sun .cal-date { color: var(--win-color); }
+        .cal-cell.sat .cal-date { color: var(--lose-color); }
+        
+        .cal-cell.today {
+            border: 2px solid var(--primary-color) !important;
+            background-color: #e8f0fe !important;
+        }
+        .cal-cell.today .cal-date {
+            color: var(--primary-color);
+            font-weight: 900;
+        }
+
+        .cal-event { border-radius: 4px; padding: 4px 2px; font-size: 0.65rem; color: white; cursor: pointer; margin-bottom: 3px; text-align: center; line-height: 1.1; word-break: break-all; min-height: 24px; }
+        .cal-event .cal-teams { font-size: 0.6rem; opacity: 0.9; font-weight: bold; }
+        .cal-event .cal-score { font-size: 0.65rem; font-weight: bold; }
+        
+        .cal-badge-win { background-color: var(--win-color); }
+        .cal-badge-lose { background-color: var(--lose-color); }
+        .cal-badge-draw { background-color: var(--draw-color); }
+        .cal-badge-cancel { background-color: var(--cancel-color); }
+        .cal-badge-neutral { background-color: #636e72; }
+        .cal-badge-plan { background-color: var(--plan-color); }
+
+        /* Calendar Stats Header */
+        .cal-stats-summary { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 12px; }
+        .cal-stats-main { font-weight: bold; text-align: center; font-size: 1rem; color: #1a56a0; }
+
+        #cal-detail-container { margin-top: 15px; }
+
+        .btn-google {
+            background: #4285F4;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        @media (min-width: 768px) {
+            body { padding-bottom: 0; }
+            .container { max-width: 1000px; padding: 20px; }
+            .bottom-nav { position: static; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; border-bottom: 1px solid #ddd; }
+            .nav-item { padding: 12px 0; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+            .nav-item i { font-size: 16px; margin-bottom: 0; }
+            .cal-cell { min-height: 100px; }
+            .stats-total-hero { padding: 35px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>⚾️ プロ野球観戦記録簿</h1>
+    <div>
+        <div id="google-btn-container">
+            <button class="btn-google" onclick="app.loginGoogle()"><i class="fab fa-google"></i> ログインして同期</button>
+        </div>
+        <div id="user-profile-container" class="user-profile hidden">
+            <img id="user-avatar" src="" alt="User Avatar">
+            <span id="user-name"></span>
+            <button class="btn-logout" onclick="app.logoutGoogle()">ログアウト</button>
+        </div>
+    </div>
+</header>
+
+<div id="app" class="container">
+    <nav class="bottom-nav">
+        <button class="nav-item active" id="btn-nav-input" onclick="app.switchView('view-input', this)"><i class="fas fa-edit"></i>入力</button>
+        <button class="nav-item" id="btn-nav-list" onclick="app.switchView('view-list', this)"><i class="fas fa-list"></i>一覧</button>
+        <button class="nav-item" id="btn-nav-cal" onclick="app.switchView('view-calendar', this)"><i class="fas fa-calendar-alt"></i>カレンダー</button>
+        <button class="nav-item" id="btn-nav-stats" onclick="app.switchView('view-stats', this)"><i class="fas fa-chart-pie"></i>統計</button>
+        <button class="nav-item" id="btn-nav-settings" onclick="app.switchView('view-settings', this)"><i class="fas fa-cog"></i>設定</button>
+    </nav>
+
+    <section id="view-settings" class="view hidden">
+        <div class="card">
+            <h2>応援球団設定</h2>
+            <div id="team-selection" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;"></div>
+            <button class="btn" id="btn-save-settings" style="margin-top:20px" onclick="app.saveSettings()">設定を保存して開始</button>
+        </div>
+        <div class="card" style="margin-top:20px; opacity: 0.9;">
+            <button class="btn btn-outline" onclick="app.exportData()">データを書き出す</button>
+            <div style="margin-top:15px;">
+                <textarea id="import-area" rows="3" placeholder="バックアップを貼り付けて復元"></textarea>
+                <button class="btn btn-outline" onclick="app.importData()" style="margin-top:5px; background:#e74c3c; color:white; border:none;">復元を実行</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="view-input" class="view">
+        <div class="card">
+            <h2 id="input-title">新規記録入力</h2>
+            
+            <div class="mode-selector">
+                <div class="mode-btn active" id="mode-btn-plan" onclick="app.setRecordMode('plan')">📅 観戦予定</div>
+                <div class="mode-btn" id="mode-btn-result" onclick="app.setRecordMode('result')">🏁 観戦終了・中止</div>
+            </div>
+
+            <form id="record-form">
+                <div class="row">
+                    <div class="form-group"><label>区分</label>
+                        <select id="f-category" onchange="app.onCategoryOrHomeChange()">
+                            <option value="一軍">一軍</option><option value="二軍">二軍</option><option value="中立観戦">中立観戦</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>大会区分</label>
+                        <select id="f-tournament-type">
+                            <option value="公式戦">公式戦</option><option value="交流戦">交流戦</option><option value="CS">CS</option><option value="日本シリーズ">日本シリーズ</option><option value="オープン戦">オープン戦</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row result-only-field hidden">
+                    <div class="form-group"><label>試合状況</label>
+                        <select id="f-status">
+                            <option value="正常">試合終了</option><option value="中止">中止</option><option value="ノーゲーム">ノーゲーム</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="form-group" style="flex: 1.2;"><label>日付</label><input type="date" id="f-date" required></div>
+                    <div class="form-group" style="flex: 1;"><label>時間</label><select id="f-time-select"></select></div>
+                </div>
+                
+                <div class="row">
+                    <div class="form-group" style="flex: 1;"><label>回戦</label><input type="number" id="f-match-round" placeholder="例:15"></div>
+                </div>
+
+                <div class="form-group"><label>球場</label>
+                    <select id="f-stadium-select" onchange="app.uiUpdate()"></select>
+                    <input type="text" id="f-stadium-custom" class="hidden" placeholder="球場名を入力" style="margin-top:5px;">
+                </div>
+                <div class="row">
+                    <div class="form-group"><label>ホーム</label><select id="f-home-team" onchange="app.onHomeTeamChange()"></select></div>
+                    <div class="form-group"><label>ビジター</label><select id="f-visitor-team" onchange="app.uiUpdate()"></select></div>
+                </div>
+
+                <div id="support-select-container" class="highlight-box hidden">
+                    <label style="color:#d9480f; font-weight: bold;"><i class="fas fa-flag"></i> どちらの球団の記録にしますか？</label>
+                    <select id="f-supported-team"></select>
+                </div>
+
+                <div class="result-only-field hidden">
+                    <div class="row">
+                        <div class="form-group">
+                            <label>スコア(H)</label>
+                            <div style="display:flex; align-items:center; gap:5px;">
+                                <input type="number" id="f-home-score" value="0">
+                                <label class="x-label"><input type="checkbox" id="f-home-x" class="x-checkbox" style="-webkit-appearance:checkbox;">x</label>
+                            </div>
+                        </div>
+                        <div class="form-group"><label>スコア(V)</label><input type="number" id="f-visitor-score" value="0"></div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group"><label id="label-hits-p">安打(応援球団)</label><input type="number" id="f-hits-p" value="0"></div>
+                        <div class="form-group hidden" id="box-hits-s"><label>安打(V)</label><input type="number" id="f-hits-s" value="0"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>本塁打</label>
+                        <div id="hr-list"></div>
+                        <button type="button" class="btn btn-outline" onclick="app.addHrField()">＋ 本塁打追加</button>
+                    </div>
+                    <div style="background:#f0f4f8; padding:10px; border-radius:8px;">
+                        <div class="row">
+                            <div class="form-group"><label style="font-size:0.7rem">勝投</label><input type="text" id="f-win-p"></div>
+                            <div class="form-group"><label style="font-size:0.7rem">勝目</label><input type="number" id="f-win-p-val"></div>
+                            <div class="form-group"><label style="font-size:0.7rem">サヨナラ打</label><input type="text" id="f-walkoff-p" placeholder="名前"></div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group"><label style="font-size:0.7rem">負投</label><input type="text" id="f-lose-p"></div>
+                            <div class="form-group"><label style="font-size:0.7rem">敗目</label><input type="number" id="f-lose-p-val"></div>
+                            <div style="flex:1;"></div>
+                        </div>
+                        <div class="row">
+                            <div class="form-group"><label style="font-size:0.7rem">Ｓ投</label><input type="text" id="f-save-p"></div>
+                            <div class="form-group"><label style="font-size:0.7rem">Ｓ目</label><input type="number" id="f-save-p-val"></div>
+                            <div style="flex:1;"></div>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top:10px;">
+                        <label>観戦メモ</label>
+                        <textarea id="f-memo" rows="2" placeholder="歴史的な記録など"></textarea>
+                    </div>
+                </div>
+
+                <button type="button" class="btn" id="save-btn" onclick="app.saveRecord()">記録を保存</button>
+                <button type="button" class="btn btn-outline hidden" id="cancel-edit-btn" onclick="app.cancelEdit()">キャンセル</button>
+            </form>
+        </div>
+    </section>
+
+    <section id="view-list" class="view hidden">
+        <div class="filter-row">
+            <select id="list-year-filter" onchange="app.renderRecords()"></select>
+            <select id="list-team-filter" onchange="app.renderRecords()"></select>
+            <select id="list-tournament-filter" onchange="app.renderRecords()">
+                <option value="all">全大会</option>
+                <option value="ペナントレース">ペナントレース</option>
+                <option value="公式戦">公式戦</option>
+                <option value="交流戦">交流戦</option>
+                <option value="CS">CS</option>
+                <option value="日本シリーズ">日本シリーズ</option>
+                <option value="オープン戦">オープン戦</option>
+            </select>
+        </div>
+        <div class="sub-tabs">
+            <button class="sub-tab active" id="tab-list-fav1" onclick="app.switchListTab('fav1')">一軍応援</button>
+            <button class="sub-tab" id="tab-list-fav2" onclick="app.switchListTab('fav2')">二軍応援</button>
+            <button class="sub-tab" id="tab-list-neutral" onclick="app.switchListTab('neutral')">中立観戦</button>
+        </div>
+        <div id="record-container"></div>
+    </section>
+
+    <section id="view-calendar" class="view hidden">
+        <div class="card">
+            <div class="filter-row" style="margin-bottom: 12px;">
+                <select id="cal-team-filter" onchange="app.onCalTeamFilterChange(this.value)"></select>
+            </div>
+            <div class="calendar-header">
+                <button onclick="app.prevMonth()"><i class="fas fa-chevron-left"></i></button>
+                <div class="calendar-title" id="cal-month-title"></div>
+                <button onclick="app.nextMonth()"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            
+            <div id="cal-month-stats-container"></div>
+            <div class="calendar-grid" id="cal-grid"></div>
+        </div>
+        <div id="cal-detail-container"></div>
+    </section>
+
+    <section id="view-stats" class="view hidden">
+        <select id="stats-year-filter" onchange="app.renderStats()" style="margin-bottom:15px;"></select>
+        <div id="stats-hero-container"></div>
+        <div id="stats-team-analysis-container"></div>
+        <div class="card">
+            <h2>球場別成績 (一軍・全体)</h2>
+            <table class="stats-table">
+                <thead><tr><th class="col-name">球場名</th><th class="col-num">試合数</th><th class="col-detail">成績</th><th class="rate-cell">勝率</th></tr></thead>
+                <tbody id="stats-stadiums-total"></tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<script>
+// --- Google API 設定 ---
+const GOOGLE_CLIENT_ID = "YOUR_CLIENT_ID.146129732565-snc3q4ni6c6ciqhvdterubgjjcf3o3fu.apps.googleusercontent.com"; // ★ご自身のクライアントIDに変更してください
+const SCOPES = "https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email";
+const DRIVE_FILENAME = "baseball_log_data.json";
+
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function safeDateParse(dateStr) {
+    if (!dateStr) return new Date();
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+        return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    }
+    return new Date(dateStr);
+}
+
+const STADIUM_MIGRATIONS = { "福岡PayPayドーム": "みずほPayPayドーム福岡", "西武ドーム": "ベルーナドーム" };
+
+const TEAM_STADIUMS = {
+    "ヤクルト": { "一軍": "明治神宮野球場", "二軍": "ヤクルト戸田球場" },
+    "横浜":     { "一軍": "横浜スタジアム", "二軍": "横須賀スタジアム" },
+    "阪神":     { "一軍": "阪神甲子園球場", "二軍": "阪神鳴尾浜球場" },
+    "巨人":     { "一軍": "東京ドーム", "二軍": "読売ジャイアンツ球場" },
+    "広島":     { "一軍": "MAZDA Zoom-Zoom スタジアム広島", "二軍": "広島東洋カープ由宇練習場" },
+    "中日":     { "一軍": "バンテリンドーム ナゴヤ", "二軍": "ナゴヤ球場" },
+    "オリックス":{ "一軍": "京セラドーム大阪", "二軍": "杉本商事バファローズスタジアム舞洲" },
+    "ロッテ":   { "一軍": "ZOZOマリンスタジアム", "二軍": "ロッテ浦和球場" },
+    "ソフトバンク":{ "一軍": "みずほPayPayドーム福岡", "二軍": "タマホーム スタジアム筑後" },
+    "楽天":     { "一軍": "楽天モバイルパーク宮城", "二軍": "ウェルファムフーズ森林どりスタジアム泉" },
+    "西武":     { "一軍": "ベルーナドーム", "二軍": "CAR3219フィールド" },
+    "日本ハム": { "一軍": "エスコンフィールドHOKKAIDO", "二軍": "ファイターズ鎌ケ谷スタジアム" },
+    "オイシックス":{ "一軍": "HARD OFF ECOスタジアム新潟", "二軍": "HARD OFF ECOスタジアム新潟" },
+    "くふうハヤテ":{ "一軍": "ちゅ〜るスタジアム清水", "二軍": "ちゅ〜るスタジアム清水" }
+};
+
+const TEAM_INITIALS = {
+    "ヤクルト": "ヤ", "横浜": "横", "阪神": "神", "巨人": "巨", "広島": "広", "中日": "中",
+    "オリックス": "オ", "ロッテ": "ロ", "ソフトバンク": "ソ", "楽天": "楽", "西武": "西", "日本ハム": "日",
+    "オイシックス": "Ｏ", "くふうハヤテ": "ハ"
+};
+
+const TEAMS = {
+    "一軍": ["ヤクルト", "横浜", "阪神", "巨人", "広島", "中日", "オリックス", "ロッテ", "ソフトバンク", "楽天", "西武", "日本ハム"],
+    "二軍": ["オイシックス", "くふうハヤテ"]
+};
+
+const STADIUMS = {
+    "一軍本拠地": ["明治神宮野球場", "横浜スタジアム", "阪神甲子園球場", "東京ドーム", "MAZDA Zoom-Zoom スタジアム広島", "バンテリンドーム ナゴヤ", "京セラドーム大阪", "ZOZOマリンスタジアム", "みずほPayPayドーム福岡", "楽天モバイルパーク宮城", "ベルーナドーム", "エスコンフィールドHOKKAIDO"],
+    "二軍本拠地": ["ヤクルト戸田球場", "横須賀スタジアム", "阪神鳴尾浜球場", "読売ジャイアンツ球場", "広島東洋カープ由宇練習場", "ナゴヤ球場", "杉本商事バファローズスタジアム舞洲", "ロッテ浦和球場", "タマホーム スタジアム筑後", "ウェルファムフーズ森林どりスタジアム泉", "CAR3219フィールド", "ファイターズ鎌ケ谷スタジアム", "HARD OFF ECOスタジアム新潟", "ちゅ〜るスタジアム清水"],
+    "その他": ["その他（自由記入）"]
+};
+
+const app = {
+    data: { settings: { favTeams: [] }, records: [] },
+    currentListTab: 'fav1',
+    editingId: null,
+    currentMode: 'plan',
+    calYear: new Date().getFullYear(),
+    calMonth: new Date().getMonth(),
+    calTeamFilter: 'all',
+    selectedCalRecordId: null,
+    storageKey: 'baseball_log_repair_final_v100',
+    tokenClient: null,
+    accessToken: null,
+    driveFileId: null,
+
+    init() {
+        const saved = localStorage.getItem(this.storageKey);
+        if (saved) {
+            try {
+                this.data = JSON.parse(saved);
+                this.runMigrations();
+            } catch (e) {
+                this.data = { settings: { favTeams: [] }, records: [] };
+            }
+        } else {
+            this.switchView('view-settings', document.getElementById('btn-nav-settings'));
+        }
+
+        this.setupTimeSelect();
+        this.renderTeamSettings();
+        this.setupForm();
+        this.autoSelectStadium();
+        this.setRecordMode('plan');
+        this.uiUpdate();
+        document.getElementById('f-date').valueAsDate = new Date();
+
+        this.initGoogleAuth();
+    },
+
+    initGoogleAuth() {
+        window.gapiLoaded = () => {
+            gapi.load('client', async () => {
+                await gapi.client.init({});
+                await gapi.client.load('drive', 'v3');
+            });
+        };
+        if (typeof gapi !== 'undefined') window.gapiLoaded();
+
+        window.gisLoaded = () => {
+            this.tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: SCOPES,
+                callback: async (resp) => {
+                    if (resp.error) return;
+                    this.accessToken = resp.access_token;
+                    await this.fetchUserProfile();
+                    await this.syncFromDrive();
+                },
+            });
+        };
+        if (typeof google !== 'undefined' && google.accounts) window.gisLoaded();
+    },
+
+    loginGoogle() {
+        if (this.tokenClient) {
+            this.tokenClient.requestAccessToken({ prompt: '' });
+        }
+    },
+
+    logoutGoogle() {
+        if (this.accessToken) {
+            google.accounts.oauth2.revoke(this.accessToken, () => {});
+            this.accessToken = null;
+            this.driveFileId = null;
+        }
+        document.getElementById('google-btn-container').classList.remove('hidden');
+        document.getElementById('user-profile-container').classList.add('hidden');
+    },
+
+    async fetchUserProfile() {
+        try {
+            const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { Authorization: `Bearer ${this.accessToken}` }
+            });
+            const user = await res.json();
+            document.getElementById('google-btn-container').classList.add('hidden');
+            const container = document.getElementById('user-profile-container');
+            container.classList.remove('hidden');
+            document.getElementById('user-avatar').src = user.picture || '';
+            document.getElementById('user-name').textContent = user.name || '';
+        } catch (e) { console.error(e); }
+    },
+
+    async syncFromDrive() {
+        if (!this.accessToken) return;
+        try {
+            const res = await gapi.client.drive.files.list({
+                q: `name='${DRIVE_FILENAME}' and 'appDataFolder' in parents and trashed=false`,
+                spaces: 'appDataFolder',
+                fields: 'files(id, name)'
+            });
+            const files = res.result.files;
+            if (files && files.length > 0) {
+                this.driveFileId = files[0].id;
+                const fileRes = await gapi.client.drive.files.get({
+                    fileId: this.driveFileId,
+                    alt: 'media'
+                });
+                if (fileRes.result || fileRes.body) {
+                    const driveData = typeof fileRes.result === 'object' ? fileRes.result : JSON.parse(fileRes.body);
+                    if (driveData && Array.isArray(driveData.records)) {
+                        this.data = driveData;
+                        this.runMigrations();
+                        this.saveLocal();
+                        this.renderRecords();
+                        this.renderCalendar();
+                        alert('Google Driveからデータを同期しました');
+                    }
+                }
+            }
+        } catch (e) { console.error('Drive Sync error:', e); }
+    },
+
+    async saveToDrive() {
+        if (!this.accessToken) return;
+        const fileContent = JSON.stringify(this.data);
+        const metadata = { name: DRIVE_FILENAME, parents: ['appDataFolder'] };
+
+        try {
+            if (this.driveFileId) {
+                await fetch(`https://www.googleapis.com/upload/drive/v3/files/${this.driveFileId}?uploadType=media`, {
+                    method: 'PATCH',
+                    headers: { Authorization: `Bearer ${this.accessToken}`, 'Content-Type': 'application/json' },
+                    body: fileContent
+                });
+            } else {
+                const form = new FormData();
+                form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+                form.append('file', new Blob([fileContent], { type: 'application/json' }));
+
+                const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${this.accessToken}` },
+                    body: form
+                });
+                const val = await res.json();
+                this.driveFileId = val.id;
+            }
+        } catch (e) { console.error('Drive Save error:', e); }
+    },
+
+    runMigrations() {
+        if (!this.data.records || !Array.isArray(this.data.records)) this.data.records = [];
+        if (!this.data.settings) this.data.settings = { favTeams: [] };
+        if (!Array.isArray(this.data.settings.favTeams)) this.data.settings.favTeams = [];
+
+        this.data.records.forEach(rec => {
+            if (rec.isFuture === undefined) rec.isFuture = false;
+            if (!rec.status) rec.status = "正常";
+            if (!rec.winP || typeof rec.winP === 'string') rec.winP = { name: rec.winP || "", val: "" };
+            if (!rec.loseP || typeof rec.loseP === 'string') rec.loseP = { name: rec.loseP || "", val: "" };
+            if (!rec.saveP || typeof rec.saveP === 'string') rec.saveP = { name: rec.saveP || "", val: "" };
+            
+            const isHomeFav = this.data.settings.favTeams.includes(rec.homeTeam);
+            const isVisitorFav = this.data.settings.favTeams.includes(rec.visitorTeam);
+
+            if (rec.category !== "中立観戦") {
+                if (isHomeFav && !isVisitorFav) rec.supportedTeam = rec.homeTeam;
+                else if (!isHomeFav && isVisitorFav) rec.supportedTeam = rec.visitorTeam;
+                else if (isHomeFav && isVisitorFav && !rec.supportedTeam) rec.supportedTeam = rec.homeTeam;
+            }
+            if (STADIUM_MIGRATIONS[rec.stadium]) rec.stadium = STADIUM_MIGRATIONS[rec.stadium];
+        });
+        this.saveLocal();
+    },
+
+    saveLocal() { localStorage.setItem(this.storageKey, JSON.stringify(this.data)); },
+
+    save() {
+        this.saveLocal();
+        this.saveToDrive();
+    },
+
+    exportData() {
+        const blob = JSON.stringify(this.data, null, 2);
+        navigator.clipboard.writeText(blob).then(() => alert("バックアップデータをクリップボードにコピーしました。")).catch(() => {
+            alert("コピーに失敗しました。以下のテキストエリアから手動でコピーしてください。");
+            document.getElementById('import-area').value = blob;
+        });
+    },
+
+    importData() {
+        const input = document.getElementById('import-area').value.trim();
+        if (!input) return alert("復元用データを入力してください。");
+        if (!confirm("現在のデータを上書きして復元しますか？")) return;
+        try {
+            const parsed = JSON.parse(input);
+            if (parsed && typeof parsed === 'object' && Array.isArray(parsed.records) && parsed.settings) {
+                this.data = parsed;
+                this.runMigrations();
+                this.save();
+                alert("データの復元が完了しました。");
+                location.reload();
+            } else {
+                alert("データの構造が正しくありません。");
+            }
+        } catch (e) { alert("不正なJSONフォーマットです。"); }
+    },
+
+    setupTimeSelect() {
+        const sel = document.getElementById('f-time-select');
+        let opts = "";
+        for(let h=0; h<24; h++) {
+            for(let m=0; m<60; m+=15) {
+                const t = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+                opts += `<option value="${t}" ${t==="18:00"?'selected':''}>${t}</option>`;
+            }
+        }
+        sel.innerHTML = opts;
+    },
+
+    setRecordMode(mode) {
+        this.currentMode = mode;
+        const btnPlan = document.getElementById('mode-btn-plan');
+        const btnResult = document.getElementById('mode-btn-result');
+        const resultFields = document.querySelectorAll('.result-only-field');
+
+        if (mode === 'plan') {
+            btnPlan.classList.add('active');
+            btnResult.classList.remove('active');
+            resultFields.forEach(el => el.classList.add('hidden'));
+        } else {
+            btnResult.classList.add('active');
+            btnPlan.classList.remove('active');
+            resultFields.forEach(el => el.classList.remove('hidden'));
+        }
+        this.uiUpdate();
+    },
+
+    switchView(viewId, btn) {
+        document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+        const target = document.getElementById(viewId);
+        if (target) target.classList.remove('hidden');
+        document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        if (viewId === 'view-list') { this.updateTeamFilterDropdown(); this.renderRecords(); }
+        if (viewId === 'view-calendar') { this.renderCalendar(); }
+        if (viewId === 'view-stats') this.renderStats();
+    },
+
+    switchListTab(tab) {
+        this.currentListTab = tab;
+        document.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+        const targetTab = document.getElementById('tab-list-' + tab);
+        if (targetTab) targetTab.classList.add('active');
+        this.renderRecords();
+    },
+
+    updateTeamFilterDropdown() {
+        const sel = document.getElementById('list-team-filter');
+        const cur = sel.value;
+        let html = '<option value="all">全応援球団</option>';
+        if (this.data.settings && this.data.settings.favTeams) {
+            this.data.settings.favTeams.forEach(t => html += `<option value="${escapeHTML(t)}" ${t===cur?'selected':''}>${escapeHTML(t)}</option>`);
+        }
+        sel.innerHTML = html;
+    },
+
+    renderTeamSettings() {
+        const container = document.getElementById('team-selection');
+        if (!container) return;
+        container.innerHTML = '';
+        const allTeams = [...TEAMS["一軍"], ...TEAMS["二軍"]];
+        allTeams.forEach(team => {
+            const isSelected = this.data.settings.favTeams.includes(team);
+            const div = document.createElement('div');
+            div.style = `border:1px solid #ddd; padding:8px; border-radius:6px; text-align:center; font-size:12px; cursor:pointer; background:${isSelected?'var(--primary-color)':'white'}; color:${isSelected?'white':'#333'}`;
+            div.textContent = team;
+            div.onclick = () => {
+                const idx = this.data.settings.favTeams.indexOf(team);
+                if (idx > -1) this.data.settings.favTeams.splice(idx, 1);
+                else this.data.settings.favTeams.push(team);
+                this.renderTeamSettings();
+                this.setupForm();
+            };
+            container.appendChild(div);
+        });
+    },
+
+    saveSettings() {
+        this.save();
+        this.switchView('view-input', document.getElementById('btn-nav-input'));
+        alert('応援球団を保存しました。');
+    },
+
+    setupForm() {
+        const allTeams = [...TEAMS["一軍"], ...TEAMS["二軍"]];
+        const hSel = document.getElementById('f-home-team');
+        hSel.innerHTML = allTeams.map(i => `<option value="${escapeHTML(i)}">${escapeHTML(i)}</option>`).join('');
+        this.updateVisitorOptions();
+
+        const sSel = document.getElementById('f-stadium-select');
+        let sHtml = "";
+        for (const [g, list] of Object.entries(STADIUMS)) {
+            sHtml += `<optgroup label="${escapeHTML(g)}">`;
+            list.forEach(n => sHtml += `<option value="${escapeHTML(n)}">${escapeHTML(n)}</option>`);
+            sHtml += `</optgroup>`;
+        }
+        sSel.innerHTML = sHtml;
+    },
+
+    updateVisitorOptions() {
+        const hVal = document.getElementById('f-home-team').value;
+        const vSel = document.getElementById('f-visitor-team');
+        const curV = vSel.value;
+        const allTeams = [...TEAMS["一軍"], ...TEAMS["二軍"]];
+        
+        let vHtml = "";
+        allTeams.filter(t => t !== hVal).forEach(t => {
+            vHtml += `<option value="${escapeHTML(t)}" ${t===curV?'selected':''}>${escapeHTML(t)}</option>`;
+        });
+        vSel.innerHTML = vHtml;
+    },
+
+    onHomeTeamChange() {
+        this.updateVisitorOptions();
+        this.onCategoryOrHomeChange();
+    },
+
+    autoSelectStadium() {
+        const cat = document.getElementById('f-category').value;
+        const homeTeam = document.getElementById('f-home-team').value;
+        if (!homeTeam || !TEAM_STADIUMS[homeTeam]) return;
+
+        const mode = (cat === '二軍') ? '二軍' : '一軍';
+        const defaultStadium = TEAM_STADIUMS[homeTeam][mode] || TEAM_STADIUMS[homeTeam]['一軍'];
+
+        if (defaultStadium) {
+            document.getElementById('f-stadium-select').value = defaultStadium;
+        }
+    },
+
+    onCategoryOrHomeChange() {
+        if (!this.editingId) {
+            this.autoSelectStadium();
+        }
+        this.uiUpdate();
+    },
+
+    uiUpdate() {
+        const cat = document.getElementById('f-category').value;
+        const hT = document.getElementById('f-home-team').value;
+        const vT = document.getElementById('f-visitor-team').value;
+        const stadium = document.getElementById('f-stadium-select').value;
+        document.getElementById('f-stadium-custom').classList.toggle('hidden', stadium !== 'その他（自由記入）');
+        
+        const labelP = document.getElementById('label-hits-p');
+        const boxS = document.getElementById('box-hits-s');
+        if (cat === '中立観戦') { labelP.textContent = "安打(H)"; boxS.classList.remove('hidden'); }
+        else { labelP.textContent = "安打(応援球団)"; boxS.classList.add('hidden'); }
+        
+        const isHFav = this.data.settings.favTeams.includes(hT);
+        const isVFav = this.data.settings.favTeams.includes(vT);
+        const supportBox = document.getElementById('support-select-container');
+        const supportSel = document.getElementById('f-supported-team');
+
+        if (cat !== '中立観戦' && isHFav && isVFav) {
+            supportBox.classList.remove('hidden');
+            const curVal = supportSel.value;
+            supportSel.innerHTML = `<option value="${escapeHTML(hT)}">${escapeHTML(hT)}</option><option value="${escapeHTML(vT)}">${escapeHTML(vT)}</option><option value="両方応援">両方応援</option>`;
+            if(curVal) supportSel.value = curVal;
+        } else { 
+            supportBox.classList.add('hidden'); 
+            supportSel.innerHTML = "";
+        }
+    },
+
+    addHrField(val = null) {
+        const container = document.getElementById('hr-list');
+        const div = document.createElement('div');
+        div.style = "background:#f9f9f9; padding:8px; margin-bottom:5px; border-radius:6px; position:relative; border:1px solid #eee;";
+        div.innerHTML = `<button type="button" style="position:absolute; right:5px; top:5px; border:none; background:none; color:#999; font-size:16px;" onclick="this.parentElement.remove()">×</button>
+            <div class="row"><input type="text" class="hr-player" placeholder="選手名" value="${val?escapeHTML(val.player):''}" style="flex:2"></div>
+            <div class="row"><input type="number" class="hr-num" placeholder="号" value="${val?escapeHTML(val.num):''}"><input type="number" class="hr-inn" placeholder="回" value="${val?escapeHTML(val.inn):''}"><select class="hr-type"><option ${val?.type==='ソロ'?'selected':''}>ソロ</option><option ${val?.type==='2ラン'?'selected':''}>2ラン</option><option ${val?.type==='3ラン'?'selected':''}>3ラン</option><option ${val?.type==='満塁'?'selected':''}>満塁</option></select></div>`;
+        container.appendChild(div);
+    },
+
+    saveRecord() {
+        const d = document.getElementById('f-date').value; if(!d) return alert('日付を入力してください');
+        const cat = document.getElementById('f-category').value;
+        const hT = document.getElementById('f-home-team').value;
+        const vT = document.getElementById('f-visitor-team').value;
+        
+        if (hT === vT) return alert('ホーム球団とビジター球団に同じチームが選択されています。');
+
+        const supportBox = document.getElementById('support-select-container');
+        let finalSupport = "";
+
+        if (!supportBox.classList.contains('hidden')) {
+            finalSupport = document.getElementById('f-supported-team').value;
+        } else if (cat !== '中立観戦') {
+            const isH = this.data.settings.favTeams.includes(hT);
+            const isV = this.data.settings.favTeams.includes(vT);
+            if (isH) finalSupport = hT;
+            else if (isV) finalSupport = vT;
+        }
+
+        const isPlan = (this.currentMode === 'plan');
+
+        const hrs = []; 
+        if (!isPlan) {
+            document.querySelectorAll('#hr-list > div').forEach(el => {
+                const player = el.querySelector('.hr-player').value.trim();
+                if(player) hrs.push({ player, num: el.querySelector('.hr-num').value, inn: el.querySelector('.hr-inn').value, type: el.querySelector('.hr-type').value });
+            });
+        }
+
+        const pHits = isPlan ? 0 : (parseInt(document.getElementById('f-hits-p').value, 10) || 0);
+        const sHits = isPlan ? 0 : (parseInt(document.getElementById('f-hits-s').value, 10) || 0);
+        let hH = 0, vH = 0; 
+        if (!isPlan) {
+            if (cat === '中立観戦') { hH = pHits; vH = sHits; } 
+            else { if (finalSupport === hT) hH = pHits; else vH = pHits; }
+        }
+
+        const parsedDate = safeDateParse(d);
+
+        const rec = {
+            id: this.editingId || Date.now(),
+            isFuture: isPlan,
+            category: cat, 
+            status: isPlan ? "予定" : document.getElementById('f-status').value, 
+            tournamentType: document.getElementById('f-tournament-type').value, 
+            date: d, 
+            time: document.getElementById('f-time-select').value, 
+            matchRound: document.getElementById('f-match-round').value, 
+            year: parsedDate.getFullYear(),
+            stadium: document.getElementById('f-stadium-select').value === 'その他（自由記入）' ? document.getElementById('f-stadium-custom').value.trim() : document.getElementById('f-stadium-select').value,
+            homeTeam: hT, 
+            visitorTeam: vT, 
+            supportedTeam: finalSupport || null,
+            homeScore: isPlan ? 0 : (parseInt(document.getElementById('f-home-score').value, 10) || 0), 
+            homeX: isPlan ? false : document.getElementById('f-home-x').checked, 
+            visitorScore: isPlan ? 0 : (parseInt(document.getElementById('f-visitor-score').value, 10) || 0),
+            homeHits: hH, 
+            visitorHits: vH, 
+            hrs, 
+            winP: isPlan ? { name: "", val: "" } : { name: document.getElementById('f-win-p').value.trim(), val: document.getElementById('f-win-p-val').value },
+            loseP: isPlan ? { name: "", val: "" } : { name: document.getElementById('f-lose-p').value.trim(), val: document.getElementById('f-lose-p-val').value },
+            saveP: isPlan ? { name: "", val: "" } : { name: document.getElementById('f-save-p').value.trim(), val: document.getElementById('f-save-p-val').value },
+            walkoffP: isPlan ? "" : document.getElementById('f-walkoff-p').value.trim(), 
+            memo: isPlan ? "" : document.getElementById('f-memo').value.trim()
+        };
+
+        if (this.editingId) { const idx = this.data.records.findIndex(r => r.id === this.editingId); this.data.records[idx] = rec; }
+        else { this.data.records.push(rec); }
+        this.save(); alert('保存完了'); this.cancelEdit(); this.switchView('view-list', document.getElementById('btn-nav-list'));
+    },
+
+    cancelEdit() {
+        this.editingId = null;
+        document.getElementById('input-title').textContent = "新規記録入力";
+        document.getElementById('save-btn').textContent = "記録を保存";
+        document.getElementById('cancel-edit-btn').classList.add('hidden');
+        document.getElementById('record-form').reset();
+        document.getElementById('hr-list').innerHTML = '';
+        document.getElementById('f-date').valueAsDate = new Date();
+        this.setRecordMode('plan');
+        this.setupForm();
+        this.uiUpdate();
+    },
+
+    initEdit(id) {
+        const rec = this.data.records.find(r => r.id === id); if (!rec) return;
+        this.editingId = id; this.switchView('view-input', document.getElementById('btn-nav-input'));
+        document.getElementById('input-title').textContent = "記録を修正中";
+        document.getElementById('save-btn').textContent = "更新して保存";
+        document.getElementById('cancel-edit-btn').classList.remove('hidden');
+
+        document.getElementById('f-category').value = rec.category;
+        document.getElementById('f-tournament-type').value = rec.tournamentType || "公式戦";
+        document.getElementById('f-status').value = rec.status === "予定" ? "正常" : rec.status;
+        document.getElementById('f-date').value = rec.date;
+        document.getElementById('f-time-select').value = rec.time;
+        document.getElementById('f-match-round').value = rec.matchRound || "";
+        document.getElementById('f-home-team').value = rec.homeTeam;
+        
+        this.updateVisitorOptions();
+        document.getElementById('f-visitor-team').value = rec.visitorTeam;
+        
+        const isOff = [].concat(...Object.values(STADIUMS)).includes(rec.stadium);
+        document.getElementById('f-stadium-select').value = isOff ? rec.stadium : "その他（自由記入）";
+        if(!isOff) document.getElementById('f-stadium-custom').value = rec.stadium;
+
+        this.setRecordMode(rec.isFuture ? 'plan' : 'result');
+
+        this.uiUpdate();
+        if(rec.supportedTeam) document.getElementById('f-supported-team').value = rec.supportedTeam;
+        document.getElementById('f-home-score').value = rec.homeScore;
+        document.getElementById('f-home-x').checked = rec.homeX;
+        document.getElementById('f-visitor-score').value = rec.visitorScore;
+        if(rec.category === '中立観戦') { document.getElementById('f-hits-p').value = rec.homeHits; document.getElementById('f-hits-s').value = rec.visitorHits; }
+        else { document.getElementById('f-hits-p').value = (rec.supportedTeam === rec.homeTeam) ? rec.homeHits : rec.visitorHits; }
+        document.getElementById('hr-list').innerHTML = ''; if(rec.hrs) rec.hrs.forEach(h => this.addHrField(h));
+        document.getElementById('f-win-p').value = rec.winP?.name || ""; document.getElementById('f-win-p-val').value = rec.winP?.val || "";
+        document.getElementById('f-lose-p').value = rec.loseP?.name || ""; document.getElementById('f-lose-p-val').value = rec.loseP?.val || "";
+        document.getElementById('f-save-p').value = rec.saveP?.name || ""; document.getElementById('f-save-p-val').value = rec.saveP?.val || "";
+        document.getElementById('f-walkoff-p').value = rec.walkoffP || "";
+        document.getElementById('f-memo').value = rec.memo || "";
+        window.scrollTo(0,0);
+    },
+
+    deleteRecord(id) {
+        if (!confirm('この記録を削除してもよろしいですか？')) return;
+        this.data.records = this.data.records.filter(r => r.id !== id);
+        this.save();
+        this.renderRecords();
+        if(!document.getElementById('view-calendar').classList.contains('hidden')) {
+            this.renderCalendar();
+            document.getElementById('cal-detail-container').innerHTML = '';
+        }
+    },
+
+    getMatchResult(rec) {
+        if (rec.isFuture) return '予定';
+        if (rec.status !== '正常') return rec.status;
+        if (rec.category === '中立観戦') return '中立';
+        if (rec.homeScore === rec.visitorScore) return '分';
+        const sup = rec.supportedTeam; if (!sup || sup === "両方応援") return '中立';
+        return (sup === rec.homeTeam) ? (rec.homeScore > rec.visitorScore ? '勝' : '敗') : (rec.visitorScore > rec.homeScore ? '勝' : '敗');
+    },
+
+    prevMonth() {
+        this.calMonth--;
+        if (this.calMonth < 0) { this.calMonth = 11; this.calYear--; }
+        this.renderCalendar();
+    },
+    nextMonth() {
+        this.calMonth++;
+        if (this.calMonth > 11) { this.calMonth = 0; this.calYear++; }
+        this.renderCalendar();
+    },
+
+    onCalTeamFilterChange(val) {
+        this.calTeamFilter = val;
+        this.renderCalendar();
+    },
+
+    renderCalendar() {
+        document.getElementById('cal-month-title').textContent = `${this.calYear}年 ${this.calMonth + 1}月`;
+        
+        const calTeamSel = document.getElementById('cal-team-filter');
+        let calTeamHtml = '<option value="all">全応援球団</option>';
+        if (this.data.settings && this.data.settings.favTeams) {
+            this.data.settings.favTeams.forEach(t => {
+                calTeamHtml += `<option value="${escapeHTML(t)}" ${t === this.calTeamFilter ? 'selected' : ''}>${escapeHTML(t)}</option>`;
+            });
+        }
+        calTeamSel.innerHTML = calTeamHtml;
+
+        this.renderCalendarMonthStats();
+
+        const grid = document.getElementById('cal-grid');
+        grid.innerHTML = '';
+        document.getElementById('cal-detail-container').innerHTML = '';
+        this.selectedCalRecordId = null;
+
+        const days = ['日', '月', '火', '水', '木', '金', '土'];
+        days.forEach((d, idx) => {
+            const h = document.createElement('div');
+            h.className = `cal-day-header ${idx===0?'sun':idx===6?'sat':''}`;
+            h.textContent = d;
+            grid.appendChild(h);
+        });
+
+        const firstDay = new Date(this.calYear, this.calMonth, 1).getDay();
+        const lastDate = new Date(this.calYear, this.calMonth + 1, 0).getDate();
+        const prevLastDate = new Date(this.calYear, this.calMonth, 0).getDate();
+
+        for (let i = firstDay - 1; i >= 0; i--) {
+            const cell = document.createElement('div');
+            cell.className = 'cal-cell other-month';
+            cell.innerHTML = `<div class="cal-date">${prevLastDate - i}</div>`;
+            grid.appendChild(cell);
+        }
+
+        const todayObj = new Date();
+        const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
+
+        for (let date = 1; date <= lastDate; date++) {
+            const cellDateStr = `${this.calYear}-${String(this.calMonth + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+            const dayOfWeek = new Date(this.calYear, this.calMonth, date).getDay();
+            
+            const isToday = (cellDateStr === todayStr);
+
+            const cell = document.createElement('div');
+            cell.className = `cal-cell ${dayOfWeek===0?'sun':dayOfWeek===6?'sat':''} ${isToday ? 'today' : ''}`;
+            cell.innerHTML = `<div class="cal-date">${date}</div>`;
+
+            let dayRecords = this.data.records.filter(r => r.date === cellDateStr && r.category === '一軍');
+            if (this.calTeamFilter !== 'all') {
+                dayRecords = dayRecords.filter(r => r.supportedTeam === this.calTeamFilter);
+            }
+
+            dayRecords.forEach(rec => {
+                const res = this.getMatchResult(rec);
+                const hInit = TEAM_INITIALS[rec.homeTeam] || rec.homeTeam.substring(0, 1);
+                const vInit = TEAM_INITIALS[rec.visitorTeam] || rec.visitorTeam.substring(0, 1);
+                
+                let badgeClass = 'cal-badge-neutral';
+                if (res === '予定') badgeClass = 'cal-badge-plan';
+                else if (res === '勝') badgeClass = 'cal-badge-win';
+                else if (res === '敗') badgeClass = 'cal-badge-lose';
+                else if (res === '分') badgeClass = 'cal-badge-draw';
+                else if (res === '中止' || res === 'ノーゲーム') badgeClass = 'cal-badge-cancel';
+
+                const ev = document.createElement('div');
+                ev.className = `cal-event ${badgeClass}`;
+
+                if (rec.isFuture) {
+                    ev.innerHTML = `<div class="cal-teams">${escapeHTML(hInit)}-${escapeHTML(vInit)}</div><div class="cal-score">予定</div>`;
+                } else if (rec.status !== '正常') {
+                    ev.innerHTML = `<div class="cal-teams">${escapeHTML(hInit)}-${escapeHTML(vInit)}</div><div class="cal-score">${escapeHTML(rec.status)}</div>`;
+                } else {
+                    ev.innerHTML = `<div class="cal-teams">${escapeHTML(hInit)} - ${escapeHTML(vInit)}</div><div class="cal-score">${rec.homeScore}-${rec.visitorScore}</div>`;
+                }
+
+                ev.onclick = (e) => {
+                    e.stopPropagation();
+                    this.showCalendarRecordDetail(rec.id);
+                };
+                cell.appendChild(ev);
+            });
+
+            grid.appendChild(cell);
+        }
+
+        const totalCells = firstDay + lastDate;
+        const nextDays = (totalCells > 35 ? 42 : 35) - totalCells;
+        for (let i = 1; i <= nextDays; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cal-cell other-month';
+            cell.innerHTML = `<div class="cal-date">${i}</div>`;
+            grid.appendChild(cell);
+        }
+    },
+
+    formatMonthlySummary(games, w, l, d) {
+        if (games === 0) return "月間通算 0試合 0勝0敗 .000";
+        
+        const winRateVal = (w + l > 0) ? (w / (w + l)) : 0;
+        const winRateStr = winRateVal.toFixed(3).replace(/^0/, '');
+        
+        let scoreStr = `${w}勝${l}敗`;
+        if (d > 0) scoreStr += `${d}分`;
+
+        return `月間通算 ${games}試合 ${scoreStr} ${winRateStr}`;
+    },
+
+    renderCalendarMonthStats() {
+        const container = document.getElementById('cal-month-stats-container');
+        if (!container) return;
+
+        const calcRate = (w, l) => (w + l > 0) ? (w / (w + l)).toFixed(3).replace(/^0/, '') : '.000';
+
+        const monthRecords = this.data.records.filter(r => {
+            const dt = safeDateParse(r.date);
+            return dt.getFullYear() === this.calYear &&
+                   dt.getMonth() === this.calMonth &&
+                   !r.isFuture &&
+                   r.category === '一軍' &&
+                   ["公式戦", "交流戦"].includes(r.tournamentType || "公式戦");
+        });
+
+        let teamStats = {};
+        this.data.settings.favTeams.forEach(t => {
+            teamStats[t] = { w: 0, l: 0, d: 0, c: 0 };
+        });
+
+        monthRecords.forEach(r => {
+            const sup = r.supportedTeam;
+            const res = this.getMatchResult(r);
+
+            if (sup && teamStats[sup]) {
+                if (r.status !== "正常") {
+                    teamStats[sup].c++;
+                } else if (res === '勝') {
+                    teamStats[sup].w++;
+                } else if (res === '敗') {
+                    teamStats[sup].l++;
+                } else if (res === '分') {
+                    teamStats[sup].d++;
+                }
+            }
+        });
+
+        let displayStats = { w: 0, l: 0, d: 0, c: 0 };
+
+        if (this.calTeamFilter === 'all') {
+            Object.values(teamStats).forEach(s => {
+                displayStats.w += s.w;
+                displayStats.l += s.l;
+                displayStats.d += s.d;
+                displayStats.c += s.c;
+            });
+        } else {
+            if (teamStats[this.calTeamFilter]) {
+                displayStats = teamStats[this.calTeamFilter];
+            }
+        }
+
+        const totalGames = displayStats.w + displayStats.l + displayStats.d;
+        const summaryText = this.formatMonthlySummary(totalGames, displayStats.w, displayStats.l, displayStats.d);
+
+        let html = `<div class="cal-stats-summary">`;
+        html += `<div class="cal-stats-main">${escapeHTML(summaryText)}</div>`;
+
+        let teamRows = "";
+        Object.entries(teamStats).forEach(([team, s]) => {
+            if (this.calTeamFilter !== 'all' && this.calTeamFilter !== team) return;
+            const g = s.w + s.l + s.d;
+            if (g === 0 && s.c === 0) return;
+            teamRows += `<tr>
+                <td style="font-weight:bold;">${escapeHTML(team)}</td>
+                <td>${g}試合</td>
+                <td>${this.formatStatsString(s.w, s.l, s.d, s.c)}</td>
+                <td style="font-weight:bold; color:var(--primary-color);">${calcRate(s.w, s.l)}</td>
+            </tr>`;
+        });
+
+        if (teamRows) {
+            html += `<table class="stats-table" style="margin-top:8px; margin-bottom:0;">
+                <thead><tr><th>球団</th><th>試合</th><th>成績</th><th>勝率</th></tr></thead>
+                <tbody>${teamRows}</tbody>
+            </table>`;
+        }
+
+        html += `</div>`;
+        container.innerHTML = html;
+    },
+
+    showCalendarRecordDetail(id) {
+        this.selectedCalRecordId = id;
+        const container = document.getElementById('cal-detail-container');
+        const rec = this.data.records.find(r => r.id === id);
+        if (!rec) return;
+
+        const res = this.getMatchResult(rec);
+        const bc = (res==='予定')?'bg-plan':(res==='勝')?'bg-win':(res==='敗')?'bg-lose':(res==='分')?'bg-draw':(res==='中止' || res==='ノーゲーム')?'bg-cancel':'bg-neutral';
+        
+        let opp = (rec.supportedTeam === rec.homeTeam) ? rec.visitorTeam : rec.homeTeam;
+        let titleHtml = `<div class="record-main-title">${escapeHTML(rec.tournamentType)} ${escapeHTML(opp)} ${rec.matchRound ? escapeHTML(rec.matchRound)+'回戦' : ''}</div>`;
+        
+        let sD = rec.isFuture ? `${escapeHTML(rec.homeTeam)} vs ${escapeHTML(rec.visitorTeam)}` : (rec.status === "正常" ? `${escapeHTML(rec.homeTeam)} ${rec.homeScore}${rec.homeX?'x':''} - ${rec.visitorScore} ${escapeHTML(rec.visitorTeam)}` : `${escapeHTML(rec.homeTeam)} ${escapeHTML(rec.status)} ${escapeHTML(rec.visitorTeam)}`);
+        let details = "";
+        if (!rec.isFuture && rec.status === "正常") {
+            let hitI = (rec.category==='中立観戦')?`H:${rec.homeHits} V:${rec.visitorHits}`:`${(rec.supportedTeam === rec.homeTeam ? rec.homeHits : rec.visitorHits)}本`;
+            let pI = []; if (rec.winP?.name) pI.push(`[勝] ${escapeHTML(rec.winP.name)}${rec.winP.val?`(${escapeHTML(rec.winP.val)})`:''}`);
+            if (rec.loseP?.name) pI.push(`[敗] ${escapeHTML(rec.loseP.name)}${rec.loseP.val?`(${escapeHTML(rec.loseP.val)})`:''}`);
+            if (rec.saveP?.name) pI.push(`[Ｓ] ${escapeHTML(rec.saveP.name)}${rec.saveP.val?`(${escapeHTML(rec.saveP.val)})`:''}`);
+            details = `<div><strong>安打:</strong> ${hitI}</div>${rec.walkoffP?`<div><i class="fas fa-bolt" style="color:#e6b422;"></i> <strong>サヨナラ打:</strong> ${escapeHTML(rec.walkoffP)}</div>`:''}${rec.hrs?.length?`<div><strong>本塁打:</strong> ${rec.hrs.map(h=>`${escapeHTML(h.player)}(${escapeHTML(h.inn)}回${escapeHTML(h.num)}号${escapeHTML(h.type)})`).join(', ')}</div>`:''}${pI.length?`<div><strong>投手:</strong> ${pI.join(' ')}</div>`:""}${rec.memo?`<div class="memo-box">Memo: ${escapeHTML(rec.memo)}</div>`:""}`;
+        }
+
+        container.innerHTML = `
+            <div class="card record-card ${(res==='予定')?'plan':(res==='勝')?'win':(res==='敗')?'lose':(res==='分')?'draw':(res==='中止')?'canceled':''}">
+                <div>
+                    ${titleHtml}
+                    <div class="record-meta">${escapeHTML(rec.date.replace(/-/g,'/'))} ${escapeHTML(rec.time)} / ${escapeHTML(rec.stadium)}</div>
+                    <div class="record-score"><span class="badge ${bc}">${escapeHTML(res)}</span> ${sD}</div>
+                </div>
+                <div style="margin-top:10px; padding-top:10px; border-top:1px dashed #ddd; font-size:0.85rem;">
+                    ${details}
+                    <div class="action-btns">
+                        <button class="btn-mini btn-edit" onclick="app.initEdit(${rec.id})">編集</button>
+                        <button class="btn-mini btn-delete" onclick="app.deleteRecord(${rec.id})">削除</button>
+                    </div>
+                </div>
+            </div>`;
+        container.scrollIntoView({ behavior: 'smooth' });
+    },
+
+    renderRecords() {
+        const container = document.getElementById('record-container');
+        const fy = document.getElementById('list-year-filter');
+        const ft = document.getElementById('list-team-filter');
+        const fr = document.getElementById('list-tournament-filter');
+        const years = [...new Set(this.data.records.map(r => r.year))].sort((a,b) => b-a);
+        const curY = fy.value || "通算";
+        fy.innerHTML = ['通算', ...years].map(y => `<option value="${y}" ${y==curY?'selected':''}>${y}</option>`).join('');
+
+        const sortedAll = [...this.data.records].sort((a,b) => (a.date + a.time).localeCompare(b.date + b.time));
+        let yT = { A: {}, B: {}, C: {} }; 
+        let yTm = { A: {}, B: {}, C: {} };
+
+        sortedAll.forEach(rec => {
+            const y = rec.year;
+            const type = rec.tournamentType || "公式戦";
+            
+            let grp = "";
+            if (["公式戦", "交流戦"].includes(type)) {
+                grp = "A"; rec._grpL = "ペナント";
+            } else if (["CS", "日本シリーズ"].includes(type)) {
+                grp = "B"; rec._grpL = "CS・日本S";
+            } else if (["オープン戦"].includes(type)) {
+                grp = "C"; rec._grpL = "オープン戦";
+            }
+
+            if (!rec.isFuture && rec.category === '一軍' && rec.status === '正常' && grp !== "") {
+                if (!yT[grp][y]) yT[grp][y] = 0;
+                yT[grp][y]++;
+                rec._totalSeq = yT[grp][y];
+
+                const sT = rec.supportedTeam;
+                if (sT && sT !== "両方応援") {
+                    if (!yTm[grp][y]) yTm[grp][y] = {};
+                    if (!yTm[grp][y][sT]) yTm[grp][y][sT] = 0;
+                    yTm[grp][y][sT]++;
+                    rec._teamSeq = yTm[grp][y][sT];
+                    rec._teamName = sT;
+                }
+            } else {
+                rec._totalSeq = null;
+                rec._teamSeq = null;
+            }
+        });
+
+        let filtered = sortedAll.filter(r => curY === '通算' || r.year == curY);
+        if (this.currentListTab === 'fav1') {
+            filtered = filtered.filter(r => r.category === '一軍');
+            if (ft.value !== 'all') filtered = filtered.filter(r => r.supportedTeam === ft.value);
+            
+            if (fr.value === 'ペナントレース') {
+                filtered = filtered.filter(r => ["公式戦", "交流戦"].includes(r.tournamentType || "公式戦"));
+            } else if (fr.value !== 'all') {
+                filtered = filtered.filter(r => (r.tournamentType || "公式戦") === fr.value);
+            }
+        } else if (this.currentListTab === 'fav2') {
+            filtered = filtered.filter(r => r.category === '二軍');
+            if (ft.value !== 'all') filtered = filtered.filter(r => r.supportedTeam === ft.value);
+        } else filtered = filtered.filter(r => r.category === '中立観戦');
+        
+        filtered.reverse();
+        container.innerHTML = filtered.length ? '' : '<p style="text-align:center;padding:20px;color:#999">なし</p>';
+        filtered.forEach(rec => {
+            const res = this.getMatchResult(rec);
+            const bc = (res==='予定')?'bg-plan':(res==='勝')?'bg-win':(res==='敗')?'bg-lose':(res==='分')?'bg-draw':(res==='中止' || res==='ノーゲーム')?'bg-cancel':'bg-neutral';
+            const card = document.createElement('div');
+            card.className = `card record-card ${(res==='予定')?'plan':(res==='勝')?'win':(res==='敗')?'lose':(res==='分')?'draw':(res==='中止')?'canceled':''}`;
+            let countH = rec._totalSeq ? `<span class="game-count-badge">${rec.year}年 ${escapeHTML(rec._grpL)} ${rec._totalSeq}戦目${rec._teamSeq ? ` / ${escapeHTML(rec._teamName)} ${rec._teamSeq}戦目` : ''}</span>` : "";
+            
+            let opp = (rec.supportedTeam === rec.homeTeam) ? rec.visitorTeam : rec.homeTeam;
+            let titleHtml = `<div class="record-main-title">${escapeHTML(rec.tournamentType)} ${escapeHTML(opp)} ${rec.matchRound ? escapeHTML(rec.matchRound)+'回戦' : ''}</div>`;
+            
+            let sD = rec.isFuture ? `${escapeHTML(rec.homeTeam)} vs ${escapeHTML(rec.visitorTeam)}` : (rec.status === "正常" ? `${escapeHTML(rec.homeTeam)} ${rec.homeScore}${rec.homeX?'x':''} - ${rec.visitorScore} ${escapeHTML(rec.visitorTeam)}` : `${escapeHTML(rec.homeTeam)} ${escapeHTML(rec.status)} ${escapeHTML(rec.visitorTeam)}`);
+            let details = "";
+            if (!rec.isFuture && rec.status === "正常") {
+                let hitI = (rec.category==='中立観戦')?`H:${rec.homeHits} V:${rec.visitorHits}`:`${(rec.supportedTeam === rec.homeTeam ? rec.homeHits : rec.visitorHits)}本`;
+                let pI = []; if (rec.winP?.name) pI.push(`[勝] ${escapeHTML(rec.winP.name)}${rec.winP.val?`(${escapeHTML(rec.winP.val)})`:''}`);
+                if (rec.loseP?.name) pI.push(`[敗] ${escapeHTML(rec.loseP.name)}${rec.loseP.val?`(${escapeHTML(rec.loseP.val)})`:''}`);
+                if (rec.saveP?.name) pI.push(`[Ｓ] ${escapeHTML(rec.saveP.name)}${rec.saveP.val?`(${escapeHTML(rec.saveP.val)})`:''}`);
+                details = `<div><strong>安打:</strong> ${hitI}</div>${rec.walkoffP?`<div><i class="fas fa-bolt" style="color:#e6b422;"></i> <strong>サヨナラ打:</strong> ${escapeHTML(rec.walkoffP)}</div>`:''}${rec.hrs?.length?`<div><strong>本塁打:</strong> ${rec.hrs.map(h=>`${escapeHTML(h.player)}(${escapeHTML(h.inn)}回${escapeHTML(h.num)}号${escapeHTML(h.type)})`).join(', ')}</div>`:''}${pI.length?`<div><strong>投手:</strong> ${pI.join(' ')}</div>`:""}${rec.memo?`<div class="memo-box">Memo: ${escapeHTML(rec.memo)}</div>`:""}`;
+            }
+            card.innerHTML = `${countH}<div class="record-header" onclick="this.nextElementSibling.classList.toggle('open')">
+                <div style="flex:1">${titleHtml}<div class="record-meta">${escapeHTML(rec.date.replace(/-/g,'/'))} ${escapeHTML(rec.time)} / ${escapeHTML(rec.stadium)}</div>
+                <div class="record-score"><span class="badge ${bc}">${escapeHTML(res)}</span> ${sD}</div></div><i class="fas fa-chevron-down" style="color:#ccc"></i></div>
+                <div class="record-details">${details}<div class="action-btns"><button class="btn-mini btn-edit" onclick="event.stopPropagation(); app.initEdit(${rec.id})">編集</button>
+                <button class="btn-mini btn-delete" onclick="event.stopPropagation(); app.deleteRecord(${rec.id})">削除</button></div></div>`;
+            container.appendChild(card);
+        });
+    },
+
+    formatStatsString(w, l, d, c) {
+        let str = `<span class="no-wrap">${w}勝${l}敗</span>`;
+        if (d > 0) str += `<span class="no-wrap">${d}分</span>`;
+        if (c > 0) str += `<span class="no-wrap">${c}中止</span>`;
+        return str;
+    },
+
+    renderStats() {
+        const fy = document.getElementById('stats-year-filter');
+        const curY = fy.value || "通算";
+        const years = [...new Set(this.data.records.map(r => r.year))].sort((a,b) => b-a);
+        fy.innerHTML = ['通算', ...years].map(y => `<option value="${y}" ${y==curY?'selected':''}>${y}</option>`).join('');
+
+        const filtered = this.data.records.filter(r => 
+            !r.isFuture &&
+            (curY === "通算" || r.year == curY) && 
+            r.category === '一軍' &&
+            ["公式戦", "交流戦"].includes(r.tournamentType || "公式戦")
+        );
+        const calcRate = (w, l) => (w + l > 0) ? (w / (w + l)).toFixed(3).replace(/^0/, '') : '.000';
+        const sE = (e) => e.sort((a,b) => parseFloat(calcRate(b[1].w, b[1].l)) - parseFloat(calcRate(a[1].w, a[1].l)) || (b[1].w+b[1].l) - (a[1].w+a[1].l));
+        
+        let oV = {w:0, l:0, d:0, c:0}, sT = {}, tA = {};
+        this.data.settings.favTeams.forEach(t => { tA[t] = { ov: {w:0,l:0,d:0,c:0}, h: {w:0,l:0,d:0,c:0}, v: {w:0,l:0,d:0,c:0}, opps: {}, stad: {}, pitchers: {}, batters: {}, walkoffs: {}, rs:0, ra:0 }; });
+        
+        filtered.forEach(r => {
+            const res = this.getMatchResult(r); 
+            const sup = r.supportedTeam; 
+            const isCancel = (r.status !== "正常");
+
+            if (sup && tA[sup]) {
+                const ta = tA[sup]; 
+                if (isCancel) {
+                    oV.c++;
+                    ta.ov.c++;
+                    if (sup === r.homeTeam) ta.h.c++; else ta.v.c++;
+                    const opp = (sup === r.homeTeam) ? r.visitorTeam : r.homeTeam;
+                    if (!ta.opps[opp]) ta.opps[opp] = {w:0,l:0,d:0,c:0};
+                    ta.opps[opp].c++;
+                    if (!ta.stad[r.stadium]) ta.stad[r.stadium] = {w:0,l:0,d:0,c:0};
+                    ta.stad[r.stadium].c++;
+                } else if (res === '勝' || res === '敗' || res === '分') { 
+                    const key = (res==='勝')?'w':(res==='敗')?'l':'d'; 
+                    oV[key]++; 
+                    ta.ov[key]++; 
+                    if (sup === r.homeTeam) ta.h[key]++; else ta.v[key]++; 
+                    
+                    const opp = (sup === r.homeTeam) ? r.visitorTeam : r.homeTeam; 
+                    if (!ta.opps[opp]) ta.opps[opp] = {w:0,l:0,d:0,c:0}; 
+                    ta.opps[opp][key]++; 
+
+                    if (!ta.stad[r.stadium]) ta.stad[r.stadium] = {w:0,l:0,d:0,c:0}; 
+                    ta.stad[r.stadium][key]++; 
+
+                    if (sup === r.homeTeam) { 
+                        ta.rs += r.homeScore; 
+                        ta.ra += r.visitorScore; 
+                    } else { 
+                        ta.rs += r.visitorScore; 
+                        ta.ra += r.homeScore; 
+                    } 
+
+                    const cp = (n, type) => { if(!n) return; if(!ta.pitchers[n]) ta.pitchers[n]={w:0,l:0,s:0}; ta.pitchers[n][type]++; }; 
+                    if (r.winP?.name) cp(r.winP.name, 'w'); 
+                    if (r.loseP?.name) cp(r.loseP.name, 'l'); 
+                    if (r.saveP?.name) cp(r.saveP.name, 's'); 
+                    if (r.hrs) r.hrs.forEach(h => { if(h.player) ta.batters[h.player] = (ta.batters[h.player] || 0) + 1; }); 
+                    if(r.walkoffP) ta.walkoffs[r.walkoffP] = (ta.walkoffs[r.walkoffP] || 0) + 1; 
+                }
+            }
+            
+            if (!sT[r.stadium]) sT[r.stadium] = {w:0,l:0,d:0,c:0}; 
+            if (isCancel) sT[r.stadium].c++;
+            else if (res === '勝') sT[r.stadium].w++; 
+            else if (res === '敗') sT[r.stadium].l++; 
+            else if (res === '分') sT[r.stadium].d++;
+        });
+        
+        const totalGames = oV.w + oV.l + oV.d;
+        document.getElementById('stats-hero-container').innerHTML = `
+            <div class="stats-total-hero">
+                <div style="font-size:0.9rem;opacity:0.8;margin-bottom:5px;">${curY==='通算'?'通算':escapeHTML(curY)+'年'} 勝率</div>
+                <div class="win-rate" style="display:flex; justify-content:center; align-items:baseline; gap:12px; white-space:nowrap;">
+                    <span style="font-size: 1.8rem;">${totalGames}試合</span>
+                    <span style="font-size: 3.0rem; font-weight: bold;">${calcRate(oV.w, oV.l)}</span>
+                </div>
+                <div style="margin-top:10px;">${this.formatStatsString(oV.w, oV.l, oV.d, oV.c)}</div>
+            </div>`;
+
+        let aH = ""; Object.entries(tA).forEach(([team, data]) => {
+            const teamTotalGames = data.ov.w + data.ov.l + data.ov.d;
+            if (teamTotalGames === 0 && data.ov.c === 0) return;
+            const diff = data.rs - data.ra;
+            const hGames = data.h.w + data.h.l + data.h.d;
+            const vGames = data.v.w + data.v.l + data.v.d;
+            
+            aH += `<div class="card"><h2>${escapeHTML(team)} 分析</h2><table class="stats-table">
+                <tr><td><strong>通算成績</strong></td><td class="count-cell" colspan="2"><span class="game-num no-wrap">${teamTotalGames}試合</span> ${this.formatStatsString(data.ov.w, data.ov.l, data.ov.d, data.ov.c)}</td><td class="rate-cell">${calcRate(data.ov.w, data.ov.l)}</td></tr>
+                <tr><td colspan="4">
+                    <div class="hv-container">
+                        <div class="hv-label">H: <span class="game-num no-wrap">${hGames}試合</span> ${this.formatStatsString(data.h.w, data.h.l, data.h.d, data.h.c)} (${calcRate(data.h.w, data.h.l)})</div>
+                        <div class="hv-label">V: <span class="game-num no-wrap">${vGames}試合</span> ${this.formatStatsString(data.v.w, data.v.l, data.v.d, data.v.c)} (${calcRate(data.v.w, data.v.l)})</div>
+                    </div>
+                </td></tr>
+                <tr><td colspan="4" class="text-left"><span class="hv-label">得失点差: ${diff>=0?'+':''}${diff} (得${data.rs} / 失${data.ra})</span></td></tr></table>
+                
+                <h3>対戦相手別</h3><table class="stats-table">
+                <thead><tr><th class="col-name">対戦相手</th><th class="col-num">試合数</th><th class="col-detail">成績</th><th class="rate-cell">勝率</th></tr></thead>
+                <tbody>${sE(Object.entries(data.opps)).map(([opp, s])=>{
+                    const g = s.w + s.l + s.d;
+                    return `<tr><td class="col-name">${escapeHTML(opp)}</td><td class="col-num no-wrap">${g}試合</td><td class="col-detail">${this.formatStatsString(s.w, s.l, s.d, s.c)}</td><td class="rate-cell">${calcRate(s.w, s.l)}</td></tr>`;
+                }).join('')}</tbody></table>
+                
+                <h3>球場別</h3><table class="stats-table">
+                <thead><tr><th class="col-name">球場名</th><th class="col-num">試合数</th><th class="col-detail">成績</th><th class="rate-cell">勝率</th></tr></thead>
+                <tbody>${sE(Object.entries(data.stad)).map(([st, s])=>{
+                    const g = s.w + s.l + s.d;
+                    return `<tr><td class="col-name">${escapeHTML(st)}</td><td class="col-num no-wrap">${g}試合</td><td class="col-detail">${this.formatStatsString(s.w, s.l, s.d, s.c)}</td><td class="rate-cell">${calcRate(s.w, s.l)}</td></tr>`;
+                }).join('')}</tbody></table>
+                
+                <h3>投手成績 (勝星順)</h3><table class="stats-table"><thead><tr><th>名前</th><th>勝 - 敗</th></tr></thead><tbody>${Object.entries(data.pitchers).filter(p=>p[1].w>0||p[1].l>0).sort((a,b)=>b[1].w-a[1].w).map(([n,s])=>`<tr><td>${escapeHTML(n)}</td><td>${s.w}勝 - ${s.l}敗</td></tr>`).join('')}</tbody></table>
+                <h3>セーブ (回数順)</h3><table class="stats-table"><thead><tr><th>名前</th><th>S</th></tr></thead><tbody>${Object.entries(data.pitchers).filter(p=>p[1].s>0).sort((a,b)=>b[1].s-a[1].s).map(([n,s])=>`<tr><td>${escapeHTML(n)}</td><td>${s.s}S</td></tr>`).join('')}</tbody></table>
+                <h3>本塁打 (回数順)</h3><table class="stats-table"><tbody>${Object.entries(data.batters).sort((a,b)=>b[1]-a[1]).map(([n,c])=>`<tr><td>${escapeHTML(n)}</td><td>${c}本</td></tr>`).join('')}</tbody></table>
+                <h3>サヨナラ打 (回数順)</h3><table class="stats-table"><tbody>${Object.entries(data.walkoffs).sort((a,b)=>b[1]-a[1]).map(([n,c])=>`<tr><td>${escapeHTML(n)}</td><td>${c}回</td></tr>`).join('')}</tbody></table>
+                </div>`;
+        });
+        
+        document.getElementById('stats-team-analysis-container').innerHTML = aH || '<p style="text-align:center;padding:20px;color:#999">データなし</p>';
+        
+        document.getElementById('stats-stadiums-total').innerHTML = sE(Object.entries(sT)).slice(0, 10).map(([n,s])=>{
+            const g = s.w + s.l + s.d;
+            return `<tr><td class="col-name">${escapeHTML(n)}</td><td class="col-num no-wrap">${g}試合</td><td class="col-detail">${this.formatStatsString(s.w, s.l, s.d, s.c)}</td><td class="rate-cell">${calcRate(s.w, s.l)}</td></tr>`;
+        }).join('');
+    }
+};
+
+window.onload = () => app.init();
+const manifest = { "name": "プロ野球観戦記録簿", "short_name": "野球記録", "start_url": ".", "display": "standalone", "background_color": "#f4f7f9", "theme_color": "#1a508b", "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/3177/3177218.png", "sizes": "512x512", "type": "image/png" }] };
+document.getElementById('my-manifest').setAttribute('href', 'data:application/json;base64,' + btoa(JSON.stringify(manifest)));
+</script>
+</body>
+</html>
