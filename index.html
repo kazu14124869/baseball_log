@@ -1171,7 +1171,11 @@ const app = {
         }
     },
 
-    saveRecordImage(id) {
+        saveRecordImage(id) {
+        if (!confirm('この観戦記録を画像として保存しますか？')) {
+            return; // キャンセルされた場合は保存処理を中断
+        }
+
         const card = document.getElementById(`record-card-${id}`);
         if (!card) return;
         const details = card.querySelector('.record-details');
