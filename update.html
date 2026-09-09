@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>アップデート履歴 - プロ野球観戦記録簿</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #1a508b;
+            --bg-color: #f4f7f9;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --accent-color: #e6b422;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding-bottom: 40px;
+        }
+
+        header {
+            background: var(--primary-color);
+            color: white;
+            padding: 12px 15px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .back-btn {
+            color: white;
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
+        }
+
+        .update-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #f0f4f8;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+
+        .version-badge {
+            background: var(--primary-color);
+            color: white;
+            font-weight: bold;
+            font-size: 0.8rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+        }
+
+        .update-date {
+            font-size: 0.8rem;
+            color: #777;
+        }
+
+        .update-title {
+            font-size: 1rem;
+            font-weight: bold;
+            margin: 0 0 10px 0;
+            color: #111;
+        }
+
+        .update-list {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #444;
+        }
+
+        .update-list li {
+            margin-bottom: 6px;
+        }
+
+        .tag-new {
+            background: #e74c3c;
+            color: white;
+            font-size: 0.65rem;
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin-right: 4px;
+            font-weight: bold;
+        }
+
+        .tag-fix {
+            background: #3498db;
+            color: white;
+            font-size: 0.65rem;
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin-right: 4px;
+            font-weight: bold;
+        }
+
+        @media (min-width: 768px) {
+            .container {
+                max-width: 800px;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1><i class="fas fa-history"></i> アップデート履歴</h1>
+    <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i> 戻る</a>
+</header>
+
+<div class="container">
+
+    <!-- 
+    ======================================================================
+    ▼【編集エリア】新しいアップデートを追加する場合はここより下にカードを複製して追記してください。
+    ======================================================================
+    -->
+
+    <!-- 最新のアップデート情報項目 (例) -->
+    <div class="card">
+        <div class="update-header">
+            <span class="version-badge">v1.1.0</span>
+            <span class="update-date">2026年9月10日</span>
+        </div>
+        <div class="update-title">アップデート履歴ページの追加</div>
+        <ul class="update-list">
+            <li><span class="tag-new">新機能</span>設定画面からアップデート履歴を確認できるページを追加しました。</li>
+            <li><span class="tag-fix">改善</span>デザインの一貫性とアクセシビリティを向上させました。</li>
+        </ul>
+    </div>
+
+    <!-- 過去のアップデート情報項目 (例) -->
+    <div class="card">
+        <div class="update-header">
+            <span class="version-badge">v1.0.0</span>
+            <span class="update-date">2026年9月1日</span>
+        </div>
+        <div class="update-title">プロ野球観戦記録簿 リリース</div>
+        <ul class="update-list">
+            <li><span class="tag-new">新機能</span>試合結果、戦績統計、カレンダー表示機能の初期リリース。</li>
+            <li><span class="tag-new">新機能</span>画像添付および記録の画像出力保存機能の実装。</li>
+        </ul>
+    </div>
+
+    <!-- 
+    ======================================================================
+    ▲【編集エリア終わり】
+    ======================================================================
+    -->
+
+</div>
+
+</body>
+</html>
