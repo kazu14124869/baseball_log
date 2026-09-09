@@ -247,16 +247,22 @@
         <button class="nav-item" id="btn-nav-settings" onclick="app.switchView('view-settings', this)"><i class="fas fa-cog"></i>設定</button>
     </nav>
 
-    <section id="view-settings" class="view hidden">
+        <section id="view-settings" class="view hidden">
         <div class="card">
             <h2>応援球団設定</h2>
             <div id="team-selection" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;"></div>
-            <button class="btn" id="btn-save-settings" style="margin-top:20px" onclick="app.saveSettings()">設定を保存して開始</button>
+            <button class="btn" id="save-settings-btn" style="margin-top:20px" onclick="app.saveSettings()">設定を保存して開始</button>
         </div>
         <div class="card" style="margin-top: 15px;">
             <h2>ヘルプ・説明書</h2>
             <p style="font-size: 0.85rem; color: #666; margin-bottom: 12px;">アプリの使い方や詳細な仕様については説明書をご覧ください。</p>
             <a href="Manual.html" target="_blank" class="btn btn-outline" style="text-decoration: none; text-align: center; display: block;"><i class="fas fa-book"></i> 説明書を開く</a>
+        </div>
+        <!-- 追加: アンプデート事項へのボタン -->
+        <div class="card" style="margin-top: 15px;">
+            <h2>アップデート情報</h2>
+            <p style="font-size: 0.85rem; color: #666; margin-bottom: 12px;">アプリの最新の更新内容・追加機能の一覧を確認できます。</p>
+            <a href="update.html" class="btn btn-outline" style="text-decoration: none; text-align: center; display: block;"><i class="fas fa-history"></i> アップデート事項を確認</a>
         </div>
     </section>
 
