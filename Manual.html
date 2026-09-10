@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>取扱説明書 - プロ野球観戦記録簿</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #1a508b;
+            --accent-color: #e6b422;
+            --bg-color: #f4f7f9;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --win-color: #e74c3c;
+            --lose-color: #3498db;
+            --draw-color: #95a5a6;
+            --cancel-color: #7f8c8d;
+            --plan-color: #2ecc71;
+            --ingame-color: #e67e22;
+        }
+
+        * { box-sizing: border-box; font-family: 'Helvetica Neue', Arial, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); margin: 0; padding-bottom: 40px; line-height: 1.6; }
+        
+        header { background: var(--primary-color); color: white; padding: 15px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        header h1 { margin: 0; font-size: 1.2rem; }
+
+        .container { max-width: 800px; margin: 20px auto; padding: 0 15px; }
+
+        .card { background: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #eee; }
+        
+        h2 { font-size: 1.1rem; margin-top: 0; border-left: 4px solid var(--primary-color); padding-left: 10px; margin-bottom: 15px; color: var(--primary-color); }
+        h3 { font-size: 0.95rem; margin: 15px 0 8px 0; color: #444; background: #f0f4f8; padding: 6px 12px; border-radius: 6px; }
+
+        p, li { font-size: 0.9rem; color: #555; }
+        ul, ol { padding-left: 20px; margin-top: 5px; }
+        li { margin-bottom: 6px; }
+
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; color: white; font-weight: bold; margin-right: 4px; }
+        .bg-win { background: var(--win-color); }
+        .bg-lose { background: var(--lose-color); }
+        .bg-draw { background: var(--draw-color); }
+        .bg-cancel { background: var(--cancel-color); }
+        .bg-plan { background: var(--plan-color); }
+        .bg-ingame { background: var(--ingame-color); }
+
+        .feature-box { background: #fffdf2; border: 1px solid #ffe399; padding: 12px; border-radius: 8px; margin: 10px 0; font-size: 0.85rem; }
+        .feature-box strong { color: #d9480f; }
+
+        .btn-back { display: inline-block; background: var(--primary-color); color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; font-size: 0.9rem; text-align: center; margin-bottom: 15px; }
+        
+        code { background: #e9ecef; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>📖 プロ野球観戦記録簿 取扱説明書</h1>
+</header>
+
+<div class="container">
+
+    <div style="text-align: left;">
+        <a href="javascript:window.close();" class="btn-back"><i class="fas fa-times"></i> 説明書を閉じる</a>
+    </div>
+
+    <!-- 概要 -->
+    <div class="card">
+        <h2>アプリの概要</h2>
+        <p>「プロ野球観戦記録簿」は、現地観戦した試合やテレビ観戦の記録、今後の観戦予定を簡単に管理・分析できる個人用PWA（Webアプリ）です。</p>
+        <p>一軍・二軍・中立観戦の切り替え、チーム別・球場別の詳細な統計分析、現地写真の保存、カレンダー表示など豊富な機能を備えています。</p>
+    </div>
+
+    <!-- 1. 基本設定 -->
+    <div class="card">
+        <h2>1. 初期設定・応援球団の設定</h2>
+        <p>アプリを初回起動した際、または画面上部ナビゲーションの「<i class="fas fa-cog"></i> 設定」から応援球団を設定します。</p>
+        <ul>
+            <li><strong>応援球団の複数選択：</strong> 選択した球団は「入力画面」や「統計画面」の基準として扱われます。一軍・二軍問わず複数選択が可能です。</li>
+            <li><strong>アップデート情報へのアクセス：</strong> 設定画面下部より、アプリの最新更新履歴・追加機能の一覧を確認できます。</li>
+        </ul>
+    </div>
+
+    <!-- 2. 入力モードと記録登録 -->
+    <div class="card">
+        <h2>2. 試合記録の登録（入力画面）</h2>
+        <p>画面上部の「<i class="fas fa-edit"></i> 入力」タブから記録を入力できます。用途に合わせて3つのモードを切り替えられます。</p>
+
+        <h3>入力モードの種類</h3>
+        <ul>
+            <li><span class="badge bg-plan">📅 観戦予定</span> : チケット確保済みの試合や今後の観戦計画の登録用。スコアや投手・写真は非表示になります。</li>
+            <li><span class="badge bg-ingame">⚾️ 試合中メモ</span> : 球場で試合を見ながら途中経過やメモ、写真を速報的に残すモードです。</li>
+            <li><span class="badge bg-win">🏁 観戦終了・中止</span> : 試合終了後のフル記録、または雨天中止・ノーゲームの記録用です。</li>
+        </ul>
+
+        <h3>入力項目のポイント</h3>
+        <ul>
+            <li><strong>区分（一軍/二軍/中立観戦）：</strong> 観戦タイプを指定します。「中立観戦」または応援球団同士の「両方応援」を選択した場合、スコアや安打・本塁打・投手の入力欄が両チーム並列表示に自動切り替えされます。</li>
+            <li><strong>本塁打・投手・サヨナラ打：</strong> 本塁打は複数追加可能。勝利・敗戦・セーブ投手にはそれぞれの「◯勝目」「◯敗目」「◯S目」も記録できます。サヨナラ打を打った選手名も入力可能です。</li>
+            <li><strong>球場の自動選択機能：</strong> ホームチームを選択すると、その球団のホーム球場が自動的に補完されます。</li>
+            <li><strong>写真（画像）の保存：</strong> スコアボードや球場風景の写真を複数枚アップロード可能。画像は最適サイズへ圧縮保存されるためデータ容量を圧迫しません。</li>
+        </ul>
+    </div>
+
+    <!-- 3. 観戦記録の一覧表示と操作 -->
+    <div class="card">
+        <h2>3. 観戦一覧（一覧画面）</h2>
+        <p>「<i class="fas fa-list"></i> 一覧」タブでは、記録した試合をカード形式で閲覧・管理できます。</p>
+
+        <h3>タブ切り替えとフィルタ</h3>
+        <ul>
+            <li><strong>サブタブ：</strong> 「一軍応援」「二軍応援」「中立観戦」で表示を切り替えられます。</li>
+            <li><strong>絞り込みフィルタ：</strong> 「年度（通算または特定年）」「応援球団」「大会区分（公式戦、交流戦、CS、日本シリーズ、オープン戦、ペナントレース等）」で素早く絞り込めます。</li>
+            <li><strong>自動カウント表示：</strong> 公式戦・交流戦などの対象試合には、その年の通算何戦目か（例: <code>2026年 ペナント 15戦目 / 阪神 8戦目</code>）が自動計算されてバッジ表示されます。</li>
+        </ul>
+
+        <div class="feature-box">
+            <strong>💡 長押しによる一括削除機能</strong><br>
+            任意の試合カードを<strong>長押し（約0.6秒）</strong>すると、「一括削除モード」に入ります。<br>
+            削除したい複数の試合にチェックを入れて、一括で削除を実行できます。
+        </div>
+
+        <h3>カードの操作</h3>
+        <ul>
+            <li><strong>タップで開閉：</strong> カードをタップすると、安打数・本塁打・投手成績・写真・メモなどの詳細が開きます。</li>
+            <li><strong>画像表示（ライトボックス）：</strong> 添付された写真をタップすると、画面全体で拡大表示できます（Escキーまたはタップで閉じます）。</li>
+            <li><strong>画像保存機能：</strong> 「画像保存」ボタンを押すと、その試合の記録カード全体を綺麗に画像化（PNG）して端末にダウンロード保存できます。SNSシェア等に便利です。</li>
+            <li><strong>編集・削除：</strong> 修正したい場合は「編集」ボタン、単一削除は「削除」ボタンを押します。</li>
+        </ul>
+    </div>
+
+    <!-- 4. カレンダー表示 -->
+    <div class="card">
+        <h2>4. カレンダー画面</h2>
+        <p>「<i class="fas fa-calendar-alt"></i> カレンダー」タブでは、月ごとの観戦スケジュールや結果を一覧できます。</p>
+
+        <ul>
+            <li><strong>月間成績サマリー：</strong> 選択月・選択球団の月間通算成績（例: <code>月間通算 5試合 3勝2敗 .600</code>）やチーム別内訳が最上部に自動集計されます。</li>
+            <li><strong>本日のハイライト：</strong> 当日のセルは青い太枠（<code>today</code>表示）で分かりやすく強調表示されます。</li>
+            <li><strong>イベント表示：</strong> 勝（赤）、敗（青）、分（グレー）、予定（緑）、試合中（オレンジ）など状態別のカラーバッジで対戦カードとスコアが表示されます。</li>
+            <li><strong>試合の追加ショートカット：</strong> 試合が入っていない日（空のセル）をタップすると、その日付が自動入力された状態で新規入力画面にジャンプできます。</li>
+            <li><strong>詳細プレビュー：</strong> 試合バッジをタップすると、カレンダー下部にその試合の詳細カードがスムーズに展開されます。</li>
+        </ul>
+    </div>
+
+    <!-- 5. 統計・成績分析 -->
+    <div class="card">
+        <h2>5. 統計・成績分析（統計画面）</h2>
+        <p>「<i class="fas fa-chart-pie"></i> 統計」タブでは、蓄積されたデータから観戦成績を多角的に分析します。</p>
+
+        <h3>主な集計項目</h3>
+        <ul>
+            <li><strong>通算/年度別勝率ヒーローパネル：</strong> 全観戦試合の総試合数・勝率・勝敗数を巨大表示します。</li>
+            <li><strong>チーム別分析：</strong> 応援球団ごとの勝敗・勝率に加え、ホーム（H）/ビジター（V）別の勝率、総得点・総失点および得失点差を集計します。</li>
+            <li><strong>対戦相手別成績：</strong> 相手チームごとの相性（試合数・勝敗・勝率）を一覧表示します。</li>
+            <li><strong>球場別成績：</strong> 一軍全体の各球場での現地観戦勝率をランキング形式で表示します。</li>
+        </ul>
+    </div>
+
+    <!-- PWA機能 -->
+    <div class="card">
+        <h2>6. PWA（アプリ化）について</h2>
+        <p>本アプリはPWA（Progressive Web Apps）に対応しています。</p>
+        <ul>
+            <li><strong>ホーム画面への追加：</strong> スマホブラウザの「ホーム画面に追加」を行うことで、ネイティブアプリのように全画面で快適に起動できます。</li>
+            <li><strong>オフライン利用：</strong> サービスワーカー（sw.js）により、電波の届かない球場内やオフライン環境でも閲覧・記録が可能です。</li>
+            <li><strong>データの保存：</strong> 記録データはお使いの端末（ブラウザのLocalStorage）に安全に保存されます。</li>
+        </ul>
+    </div>
+
+    <div style="text-align: center; margin-top: 20px;">
+        <a href="javascript:window.close();" class="btn-back"><i class="fas fa-times"></i> 説明書を閉じる</a>
+    </div>
+
+</div>
+
+</body>
+</html>
