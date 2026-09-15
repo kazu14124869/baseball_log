@@ -1153,14 +1153,14 @@ const app = {
         });
     },
 
-    addHrField(val = null) {
+        addHrField(val = null) {
         const container = document.getElementById('hr-list');
         const cat = document.getElementById('f-category').value;
         const hT = document.getElementById('f-home-team').value;
         const vT = document.getElementById('f-visitor-team').value;
         const supTeam = document.getElementById('f-supported-team').value;
         const isBothSupport = (cat !== '中立観戦' && supTeam === '両方応援');
-        const showTeamSelect = (cat === '中立観戦' || isBothSupport);
+        const showTeamSelect = (cat !== '中立観戦' || isBothSupport);
 
         const div = document.createElement('div');
         div.style = "background:#f9f9f9; padding:8px; margin-bottom:5px; border-radius:6px; position:relative; border:1px solid #eee;";
@@ -1172,7 +1172,16 @@ const app = {
 
         div.innerHTML = `<button type="button" style="position:absolute; right:5px; top:5px; border:none; background:none; color:#999; font-size:16px;" onclick="this.parentElement.remove()">×</button>
             <div class="row">${teamSelectHtml}<input type="text" class="hr-player" placeholder="選手名" value="${val?escapeHTML(val.player):''}" style="flex:2"></div>
-            <div class="row"><input type="number" class="hr-num" placeholder="号" value="${val?escapeHTML(val.num):''}"><input type="number" class="hr-inn" placeholder="回" value="${val?escapeHTML(val.inn):''}"><select class="hr-type"><option ${val?.type==='ソロ'?'selected':''}>ソロ</option><option ${val?.type==='2ラン'?'selected':''}>2ラン</option><option ${val?.type==='3ラン'?'selected':''}>3ラン</option><option ${val?.type==='満塁'?'selected':''}>満塁</option></select></div>
+            <div class="row" style="align-items: center; gap: 4px;">
+                <input type="number" class="hr-num" placeholder="号" value="${val?escapeHTML(val.num):''}" style="flex:1;"><span style="font-size:0.8rem; color:#555;">号</span>
+                <input type="number" class="hr-inn" placeholder="回" value="${val?escapeHTML(val.inn):''}" style="flex:1;"><span style="font-size:0.8rem; color:#555;">回</span>
+                <select class="hr-type" style="flex:1.5;">
+                    <option ${val?.type==='ソロ'?'selected':''}>ソロ</option>
+                    <option ${val?.type==='2ラン'?'selected':''}>2ラン</option>
+                    <option ${val?.type==='3ラン'?'selected':''}>3ラン</option>
+                    <option ${val?.type==='満塁'?'selected':''}>満塁</option>
+                </select>
+            </div>
             <div class="row" style="margin-top:4px;"><input type="text" class="hr-memo" placeholder="メモ (例:プロ初HR)" value="${val?escapeHTML(val.memo):''}"></div>`;
         container.appendChild(div);
     },
