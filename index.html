@@ -44,26 +44,39 @@
         header h1 { margin: 0; font-size: 1.05rem; margin-right: 10px; }
         
         /* カプセル枠（親要素） */
-        .user-profile {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 4px 12px 4px 6px;
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            border-radius: 20px;
-        }
+.user-profile {
+    display: inline-flex;
+    align-items: center; /* 縦方向の中央揃え */
+    gap: 8px;
+    padding: 4px 12px 4px 6px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 20px;
+}
 
-        /* アイコン */
-        .user-profile img,
-        .user-profile .default-icon {
-            width: 24px;
-            height: 24px;
-            font-size: 18px;
-            line-height: 1;
-            border-radius: 50%;
-            object-fit: cover;
-            flex-shrink: 0;
-        }
+/* アイコンを包むコンテナ */
+#header-user-icon-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+/* アイコン画像およびデフォルトフォントアイコン */
+.user-profile img,
+.user-profile .default-icon {
+    width: 24px;
+    height: 24px;
+    font-size: 16px;
+    line-height: 1;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
         .user-info { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
         .user-nickname { font-weight: bold; font-size: 0.85rem; }
