@@ -2155,7 +2155,7 @@ const app = {
         document.getElementById('stats-hero-container').innerHTML = `
             <div class="stats-total-hero">
                 <div style="font-size:0.75rem;opacity:0.85;margin-bottom:8px;">※統計は一軍ペナントレースのみ</div>
-                <div style="font-size:0.9rem;opacity:0.8;margin-bottom:5px;">${curY==='通算'?'通算':escapeHTML(curY)+'年'} 勝率</div>
+                <div style="font-size:1.1rem;opacity:0.8;margin-bottom:5px;">${curY==='通算'?'通算':escapeHTML(curY)+'年'} 勝率</div>
                 <div class="win-rate" style="display:flex; justify-content:center; align-items:baseline; gap:12px; white-space:nowrap;">
                     <span style="font-size: 1.8rem;">${totalGames}試合</span>
                     <span style="font-size: 3.0rem; font-weight: bold;">${calcRate(oV.w, oV.l)}</span>
