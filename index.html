@@ -2055,9 +2055,18 @@ const app = {
 
     renderStats() {
         const fy = document.getElementById('stats-year-filter');
-        const curY = fy.value || "通算";
+        
+        // 現在の年（西暦）を取得
+        const currentYear = String(new Date().getFullYear());
+        
+        // 値が未選択の場合は「現在の年」をデフォルトにする
+        const curY = fy.value || currentYear;
+        
         const years = [...new Set(this.data.records.map(r => r.year))].sort((a,b) => b-a);
-        fy.innerHTML = ['通算', ...years].map(y => `<option value="${y}" ${y==curY?'selected':''}>${y}</option>`).join('');
+        
+        // 選択肢の生成
+        fy.innerHTML = ['通算', ...years].map(y => `<option value="${y}" ${y == curY ? 'selected' : ''}>${y}</option>`).join('');
+        fy.value = curY;
 
         const filtered = this.data.records.filter(r => 
             !r.isFuture &&
