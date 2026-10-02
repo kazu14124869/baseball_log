@@ -2263,7 +2263,7 @@ const app = {
             card.id = `record-card-${rec.id}`;
             card.className = `card record-card ${(res==='予定')?'plan':(res==='試合中')?'ingame':(res==='勝')?'win':(res==='敗')?'lose':(res==='分')?'draw':(res==='中止')?'canceled':''}`;
             
-            let countH = rec._totalSeq ? `<span class="game-count-badge">${rec.year}年 ${escapeHTML(rec._grpL)} ${rec._totalSeq}戦目${rec._teamSeq ? ` / ${escapeHTML(rec._teamName)}${rec._teamSeq}戦目` : ''}</span>` : "";
+            let countH = rec._totalSeq ? `<span class="game-count-badge">${rec.year}年 ${escapeHTML(rec._grpL)} ${rec._totalSeq}戦目${rec._teamSeq ? ` / ${escapeHTML(rec._teamName)} ${rec._teamSeq}戦目` : ''}</span>` : "";
             
             let opp = (rec.supportedTeam === rec.homeTeam) ? rec.visitorTeam : rec.homeTeam;
             let titleHtml = `<div class="record-main-title">${escapeHTML(rec.tournamentType)} ${escapeHTML(opp)} ${rec.matchRound ? escapeHTML(rec.matchRound)+'回戦' : ''}</div>`;
