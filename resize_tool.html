@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>バックアップ画像一括軽量化ツール</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f4f7f9; color: #333; line-height: 1.6; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto; }
+        button { background: #1a508b; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; width: 100%; margin-top: 15px; font-size: 1rem; cursor: pointer; }
+        button:hover { background: #133d6b; }
+        #log { margin-top: 15px; font-size: 0.85rem; color: #555; white-space: pre-wrap; background: #eee; padding: 10px; border-radius: 6px; max-height: 200px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>⚾️ バックアップ画像軽量化</h2>
+    <p style="font-size: 0.8rem; color: #666;">バックアップ（.txt）を選択すると、中の写真を一括で小さく圧縮して新しいtxtを出力します。</p>
+    
+    <input type="file" id="fileInput" accept=".txt,.json">
+    <button onclick="processFile()">一括軽量化スタート</button>
+
+    <div id="log">ファイルを選択してください。</div>
+</div>
+
+<script>
+// UIのカクツキを防ぐためにメインスレッドを一時解放するヘルパー関数
+const yieldThread = () => new Promise(resolve => setTimeout(resolve, 0));
+
+async function processFile() {
+    const input = document.getElementById('fileInput');
+    const log = document.getElementById('log');
+    if (!input.files[0]) return alert('ファイルを選択してください');
+
+    const file = input.files[0];
+    log.textContent = '読み込み中...';
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const payload = JSON.parse(e.target.result);
+            if (!payload.data || !payload.data.records) {
+                return alert('正しいバックアップファイルではありません');
+            }
+
+            let count = 0;
+            const records = payload.data.records;
+            log.textContent = `変換開始... (全${records.length}件の記録)\n処理中...画面を閉じないでください。`;
+
+            // 画像リサイズ用関数 (安牌設定: 長辺1200px / 画質0.75)
+            const resizeBase64 = (base64) => new Promise((resolve) => {
+                if (!base64 || !base64.startsWith('data:image')) return resolve(base64);
+                const img = new Image();
+                img.onload = () => {
+                    const maxDim = 1200; // ★安牌: 長辺1200px（くっきり表示）
+                    let w = img.width, h = img.height;
+                    if (w > maxDim || h > maxDim) {
+                        if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+                        else { w = Math.round((w * maxDim) / h); h = maxDim; }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w; canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', 0.75)); // ★安牌: 品質0.75（ノイズを防ぎつつ軽量化）
+                };
+                img.onerror = () => resolve(base64);
+                img.src = base64;
+            });
+
+            // プロフィールアイコン
+            if (payload.data.settings?.userProfile?.icon) {
+                payload.data.settings.userProfile.icon = await resizeBase64(payload.data.settings.userProfile.icon);
+            }
+
+            // 観戦記録の画像
+            for (let i = 0; i < records.length; i++) {
+                const rec = records[i];
+                if (Array.isArray(rec.images) && rec.images.length > 0) {
+                    for (let j = 0; j < rec.images.length; j++) {
+                        rec.images[j] = await resizeBase64(rec.images[j]);
+                        count++;
+                    }
+                }
+
+                // 2件ごとにブラウザへ描画処理を回してカクツキを防止
+                if (i % 2 === 0) {
+                    log.textContent = `進行中... (${i + 1}/${records.length}件完了)`;
+                    await yieldThread(); // ★画面描画の更新とフリーズ防止
+                }
+            }
+
+            log.textContent = `【完了】合計 ${count} 枚の画像を軽量化しました！\nダウンロードを開始します...`;
+
+            // 新しいtxtとしてダウンロード
+            const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = file.name.replace('.txt', '_resized.txt');
+            a.click();
+
+        } catch (err) {
+            alert('エラーが発生しました: ' + err.message);
+            log.textContent = 'エラー: ' + err.message;
+        }
+    };
+    reader.readAsText(file);
+}
+</script>
+</body>
+</html>
