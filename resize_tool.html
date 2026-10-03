@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>バックアップ画像一括軽量化ツール</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f4f7f9; color: #333; line-height: 1.6; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto; }
+        
+        /* お知らせボックス */
+        .notice-box { background: #fff8e6; border: 1px solid #ffe58f; padding: 12px; border-radius: 8px; font-size: 0.8rem; color: #8a6d3b; margin-top: 12px; line-height: 1.5; }
+
+        .file-section { margin-top: 15px; padding: 12px; background: #e8f0fe; border-radius: 8px; border: 1px solid #b6d4fe; }
+        .file-section label { display: block; font-size: 0.85rem; font-weight: bold; color: #1a508b; margin-bottom: 6px; }
+        .setting-group { margin-top: 15px; background: #f8f9fa; padding: 12px 15px; border-radius: 8px; border: 1px solid #e9ecef; }
+        .setting-item { margin-bottom: 12px; }
+        .setting-item:last-child { margin-bottom: 0; }
+        .setting-label { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: bold; color: #495057; margin-bottom: 4px; }
+        .setting-desc { font-size: 0.72rem; color: #6c757d; margin-top: 2px; line-height: 1.4; }
+        .warning-desc { color: #d9534f; display: block; margin-top: 4px; }
+        
+        /* 過去用別枠エリア */
+        .special-box { background: #eef9f2; border: 1px solid #b7e4c7; padding: 12px; border-radius: 8px; margin-top: 15px; }
+        .special-box label.checkbox-label { font-size: 0.85rem; font-weight: bold; color: #1b4332; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+
+        input[type="range"] { width: 100%; cursor: pointer; }
+        select { width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ced4da; font-size: 0.9rem; background: #fff; }
+        button { background: #1a508b; color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; width: 100%; margin-top: 15px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #133d6b; }
+        #log { margin-top: 15px; font-size: 0.85rem; color: #555; white-space: pre-wrap; background: #eee; padding: 10px; border-radius: 6px; max-height: 200px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>⚾️ バックアップ画像軽量化</h2>
+    <p style="font-size: 0.8rem; color: #666;">バックアップ（.txt）内の画像を縮小・再圧縮して軽量化します。</p>
+
+    <!-- ★ お知らせ・ガイドボックス ★ -->
+    <div class="notice-box">
+        💡 <strong>2026/10/02以前の画像について</strong><br>
+        「専用設定」をONにすると、未圧縮の過去画像のみ画質「<strong>0.75(標準)</strong>」で一括調整できます。（2026/10/03以降の画像はアプリ側で圧縮済みです）
+    </div>
+
+    <!-- 1. ファイル選択 -->
+    <div class="file-section">
+        <label for="fileInput">📁 バックアップファイルを選択</label>
+        <input type="file" id="fileInput" accept=".txt,.json" style="width: 100%; font-size: 0.85rem;">
+    </div>
+
+    <!-- 2. 通常数値変更グループ -->
+    <div class="setting-group">
+        <div class="setting-item">
+            <div class="setting-label">
+                <span>最大解像度（長辺）</span>
+                <span id="maxDimVal">1200 px</span>
+            </div>
+            <select id="maxDimSelect" onchange="document.getElementById('maxDimVal').textContent = this.value + ' px'">
+                <option value="1200" selected>1200 px (標準・綺麗)</option>
+                <option value="1000">1000 px (バランス)</option>
+                <option value="800">800 px (容量優先)</option>
+                <option value="600">600 px (超軽量)</option>
+            </select>
+            <div class="setting-desc">
+                画像の長辺ピクセル数を制限します。<br>
+                <span class="warning-desc">⚠️ 一度小さくした画像を元の解像度に戻すことはできません。</span>
+            </div>
+        </div>
+
+        <div class="setting-item" style="margin-top: 15px;">
+            <div class="setting-label">
+                <span>通常画質 (JPEG品質)</span>
+                <span id="qualityVal">0.75</span>
+            </div>
+            <input type="range" id="qualityRange" min="0.3" max="0.95" step="0.05" value="0.75" oninput="document.getElementById('qualityVal').textContent = parseFloat(this.value).toFixed(2)">
+            <div class="setting-desc">
+                全体の画質設定です。少しだけ再圧縮したい場合は<strong>0.85〜0.90</strong>がおすすめ。<br>
+                <span class="warning-desc">⚠️ 再圧縮での下げすぎによる画質劣化にご注意ください。</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ★ 別枠：2026/10/02以前専用設定 ★ -->
+    <div class="special-box">
+        <label class="checkbox-label">
+            <input type="checkbox" id="enableDateFilter" onchange="toggleSpecialSetting()">
+            📅 2026/10/02以前の記録のみ画質を「0.75(標準)」に変更する。
+        </label>
+        
+        <div id="specialSettingBody" style="margin-top: 8px; display: none;">
+            <div class="setting-desc">
+                ※入力した「試合日」が2026/10/02以前のデータに適用されます。<br>
+                <span class="warning-desc">⚠️ 過去の試合でも画像を保存したのが2026/10/03以降（圧縮済み）の場合は、チェックを外してください。</span>
+            </div>
+        </div>
+    </div>
+    
+    <button onclick="processFile()">一括軽量化スタート</button>
+
+    <div id="log">ファイルを選択してください。</div>
+</div>
+
+<script>
+const yieldThread = () => new Promise(resolve => setTimeout(resolve, 0));
+
+function toggleSpecialSetting() {
+    const enabled = document.getElementById('enableDateFilter').checked;
+    document.getElementById('specialSettingBody').style.display = enabled ? 'block' : 'none';
+}
+
+async function processFile() {
+    const input = document.getElementById('fileInput');
+    const log = document.getElementById('log');
+    if (!input.files[0]) return alert('ファイルを選択してください');
+
+    const maxDimSetting = parseInt(document.getElementById('maxDimSelect').value, 10) || 1200;
+    const defaultQuality = parseFloat(document.getElementById('qualityRange').value) || 0.75;
+    
+    // 日付判定の有効化フラグ (有効時は 0.75 固定)
+    const enableDateFilter = document.getElementById('enableDateFilter').checked;
+    const pastQuality = 0.75;
+
+    const file = input.files[0];
+    log.textContent = '読み込み中...';
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const payload = JSON.parse(e.target.result);
+            if (!payload.data || !payload.data.records) {
+                return alert('正しいバックアップファイルではありません');
+            }
+
+            let count = 0;
+            const records = payload.data.records;
+            log.textContent = `変換開始...\n全${records.length}件の記録を処理中...画面を閉じないでください。`;
+
+            // 画像リサイズ用関数
+            const resizeBase64 = (base64, quality) => new Promise((resolve) => {
+                if (!base64 || !base64.startsWith('data:image')) return resolve(base64);
+                const img = new Image();
+                img.onload = () => {
+                    const maxDim = maxDimSetting;
+                    let w = img.width, h = img.height;
+                    if (w > maxDim || h > maxDim) {
+                        if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+                        else { w = Math.round((w * maxDim) / h); h = maxDim; }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w; canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.onerror = () => resolve(base64);
+                img.src = base64;
+            });
+
+            // プロフィールアイコン（デフォルト画質を適用）
+            if (payload.data.settings?.userProfile?.icon) {
+                payload.data.settings.userProfile.icon = await resizeBase64(payload.data.settings.userProfile.icon, defaultQuality);
+            }
+
+            // 観戦記録の画像処理
+            for (let i = 0; i < records.length; i++) {
+                const rec = records[i];
+                
+                // 日付チェック (2026/10/02 以前かどうか)
+                let targetQuality = defaultQuality;
+                if (enableDateFilter && rec.date) {
+                    const recDateStr = rec.date.replace(/\//g, '-'); // YYYY-MM-DD 形式に統一
+                    if (recDateStr <= '2026-10-02') {
+                        targetQuality = pastQuality; // 0.75固定
+                    }
+                }
+
+                if (Array.isArray(rec.images) && rec.images.length > 0) {
+                    for (let j = 0; j < rec.images.length; j++) {
+                        rec.images[j] = await resizeBase64(rec.images[j], targetQuality);
+                        count++;
+                    }
+                }
+
+                if (i % 2 === 0) {
+                    log.textContent = `進行中... (${i + 1}/${records.length}件完了)`;
+                    await yieldThread();
+                }
+            }
+
+            log.textContent = `【完了】合計 ${count} 枚の画像を軽量化しました！\nダウンロードを開始します...`;
+
+            const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = file.name.replace('.txt', '_resized.txt');
+            a.click();
+
+        } catch (err) {
+            alert('エラーが発生しました: ' + err.message);
+            log.textContent = 'エラー: ' + err.message;
+        }
+    };
+    reader.readAsText(file);
+}
+</script>
+</body>
+</html>
